@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenMet</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#0f1220;color:#e8ebff;display:grid;place-items:center;min-height:100vh}
+.card{width:min(1000px,100%);background:#161a2b;border-radius:20px;padding:20px;position:relative}
+h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+.panel{background:#0f1530;border:1px solid #212848;border-radius:16px;padding:16px;margin-top:12px}
+input,select,button{padding:6px 10px;border-radius:8px;border:1px solid #2a3358;background:#0e1433;color:#fff}
+button{cursor:pointer}
+.btn.primary{background:#7c9cff;border:none}
+.btn.success{background:#34d399;border:none}
+.btn.danger{background:#f87171;border:none}
+.btn.ghost{background:#0e1433;border:1px solid #2a3358}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:6px 8px;text-align:center;border-bottom:1px solid #2a3358}
+tr.active-set{background:#1b2347}
+.info-icon{cursor:pointer;font-size:20px}
+#infoPanel{position:absolute;top:20px;right:20px;width:300px;background:#0f1530;border:1px solid #212848;border-radius:12px;padding:16px;display:none;z-index:10}
+#infoPanel h2{margin:0 0 6px;font-size:18px}
+#infoPanel p{margin:0;font-size:14px;line-height:1.4}
+#closeInfo{cursor:pointer;color:#f87171;float:right;font-weight:bold}
+
+/* Toggle switch styles */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #2a3358;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #8b9bb4;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #7c9cff;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+  background-color: #fff;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>
+    OpenMet
+    <span class="info-icon" id="infoIcon">&#9432;</span>
+  </h1>
+
+  <!-- Info panel -->
+  <div id="infoPanel">
+    <span id="closeInfo">✖</span>
+    <h2>About OpenMet</h2>
+    <p>OpenMet is an open-source, free, programmable metronome made to work entirely within your browser. It is focused on being school-friendly, and was made with students in mind.</p>
+    <br>
+    OpenMet © 2025 by Slater Feistner is licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3.0</a>
+  </div>
+
+  <!-- Metronome visuals -->
+  <div class="panel">
+    <div style="display:flex;gap:20px;align-items:center">
+      <div id="led" style="width:60px;height:60px;border-radius:50%;background:#1b2347"></div>
+      <div id="beatStrip" style="display:flex;gap:6px;flex:1"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="panel">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <!-- Left: Start/Stop/Export/Import -->
+      <div class="row">
+        <button id="startBtn" class="btn primary">Start</button>
+        <button id="stopBtn" class="btn danger" disabled>Stop</button>
+        <button id="exportBtn" class="btn success">Export JSON</button>
+        <input type="file" id="importFile" style="display:none">
+        <button id="importBtn" class="btn ghost">Import JSON</button>
+      </div>
+
+      <!-- Right: Tempo / TS -->
+      <div class="row" style="margin-left:auto;gap:6px;align-items:center">
+        <label style="margin:0;display:flex;flex-direction:column;align-items:flex-start">
+          BPM
+          <input id="setBpm" type="number" min="20" max="300" value="120" style="width:70px">
+        </label>
+
+        <label style="margin:0;display:flex;flex-direction:column;align-items:flex-start">
+          TS
+          <div class="row">
+            <input id="setTop" type="number" min="1" max="12" value="4" style="width:50px">
+            <span>/</span>
+            <select id="setBottom" style="width:60px">
+              <option value="1">1</option><option value="2">2</option>
+              <option value="4" selected>4</option><option value="8">8</option><option value="16">16</option>
+            </select>
+          </div>
+        </label>
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Group name and sets table -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <label style="display:flex;flex-direction:column;align-items:flex-start;margin:0">
+        Group Name
+        <input id="groupName" type="text" placeholder="Enter group name" style="width:200px">
+      </label>
+      
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <label style="display:flex;flex-direction:column;align-items:flex-start;margin:0">
+          Set Name
+          <input id="setName" type="text" placeholder="Enter set name" style="width:120px">
+        </label>
+        <label style="display:flex;flex-direction:column;align-items:flex-start;margin:0">
+          Measures
+          <input id="setMeasures" type="number" min="1" value="4" style="width:60px">
+        </label>
+        <button id="addSetBtn" class="btn success">Add Set</button>
+        <label style="display:flex;align-items:center;gap:8px;margin:0">
+          <span style="font-size:14px">Use Sets</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="useSetsToggle">
+            <span class="slider"></span>
+          </label>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;margin:0">
+          <span style="font-size:14px">Loop</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="loopToggle">
+            <span class="slider"></span>
+          </label>
+        </label>
+      </div>
+    </div>
+    <h3>Program Sets</h3>
+    <table>
+      <thead><tr><th>#</th><th>Set Name</th><th>BPM</th><th>TS</th><th>Measures</th><th>Actions</th></tr></thead>
+      <tbody id="setTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const els = {
+  led: document.getElementById("led"),
+  beatStrip: document.getElementById("beatStrip"),
+  startBtn: document.getElementById("startBtn"),
+  stopBtn: document.getElementById("stopBtn"),
+  setBpm: document.getElementById("setBpm"),
+  setTop: document.getElementById("setTop"),
+  setBottom: document.getElementById("setBottom"),
+  setMeasures: document.getElementById("setMeasures"),
+  setName: document.getElementById("setName"),
+  addSetBtn: document.getElementById("addSetBtn"),
+  setTable: document.getElementById("setTable"),
+  exportBtn: document.getElementById("exportBtn"),
+  importBtn: document.getElementById("importBtn"),
+  importFile: document.getElementById("importFile"),
+  useSetsToggle: document.getElementById("useSetsToggle"),
+  loopToggle: document.getElementById("loopToggle"),
+  groupName: document.getElementById("groupName"),
+  infoIcon: document.getElementById("infoIcon"),
+  infoPanel: document.getElementById("infoPanel"),
+  closeInfo: document.getElementById("closeInfo")
+};
+
+let state = {
+  sets: [],
+  currentSetIndex: 0,
+  beatIndex: 0,
+  measureIndex: 0,
+  isRunning: false,
+  bpm: 120,
+  beatsPerBar: 4,
+  beatUnit: 4,
+  audioCtx: null,
+  nextNoteTime: 0,
+  lookahead: 25,
+  scheduleAheadTime: 0.1,
+  schedulerId: null,
+  currentSet: null,
+  beatStates: [] // 0 = off, 1 = normal, 2 = accented
+};
+
+// --- Info panel ---
+els.infoIcon.onclick = ()=> els.infoPanel.style.display="block";
+els.closeInfo.onclick = ()=> els.infoPanel.style.display="none";
+
+// --- Sets management ---
+function renderSets(){
+  els.setTable.innerHTML = "";
+  state.sets.forEach((s,i)=>{
+    const row = document.createElement("tr");
+    if(state.currentSetIndex === i && state.isRunning && els.useSetsToggle.checked){
+      row.classList.add("active-set");
+    }
+    row.innerHTML = `<td>${i+1}</td>
+      <td>${s.name}</td>
+      <td>${s.bpm}</td>
+      <td>${s.top}/${s.bottom}</td>
+      <td>${s.measures}</td>
+      <td><button onclick="removeSet(${i})">X</button></td>`;
+    els.setTable.appendChild(row);
+  });
+}
+function removeSet(i){ state.sets.splice(i,1); renderSets(); }
+
+els.addSetBtn.onclick = ()=>{
+  const name = els.setName.value || `Set ${state.sets.length+1}`;
+  state.sets.push({
+    name: name,
+    bpm: Number(els.setBpm.value),
+    top: Number(els.setTop.value),
+    bottom: Number(els.setBottom.value),
+    measures: Number(els.setMeasures.value)
+  });
+  renderSets();
+};
+
+// --- Export / Import ---
+els.exportBtn.onclick = ()=>{
+  const data = {
+    groupName: els.groupName.value || "Untitled Group",
+    sets: state.sets
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download="openmet_sets.json"; a.click();
+  URL.revokeObjectURL(url);
+};
+els.importBtn.onclick = ()=> els.importFile.click();
+els.importFile.onchange = e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      state.sets = data.sets || [];
+      els.groupName.value = data.groupName || "";
+      renderSets();
+    }catch(e){ alert("Invalid JSON"); }
+  };
+  reader.readAsText(file);
+};
+
+// --- Audio ---
+function initAudio(){
+  if(!state.audioCtx){ state.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+}
+function clickSound(time, accented){
+  const ctx = state.audioCtx; if(!ctx) return;
+  const osc = ctx.createOscillator(); const gain = ctx.createGain();
+  osc.type="square"; osc.frequency.setValueAtTime(accented?1800:1200,time);
+  gain.gain.setValueAtTime(0,time);
+  gain.gain.linearRampToValueAtTime(accented?0.3:0.2,time+0.001);
+  gain.gain.exponentialRampToValueAtTime(0.001,time+0.06);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(time); osc.stop(time+0.08);
+}
+function nextIntervalSeconds(){ return (60/state.bpm)*(4/state.beatUnit); }
+
+// --- Sets management ---
+function loadSet(setIndex) {
+  if (setIndex >= 0 && setIndex < state.sets.length) {
+    const set = state.sets[setIndex];
+    state.bpm = set.bpm;
+    state.beatsPerBar = set.top;
+    state.beatUnit = set.bottom;
+    state.currentSet = set;
+    state.currentSetIndex = setIndex;
+    state.measureIndex = 0;
+    
+    // Reset beat states for new time signature
+    state.beatStates = [];
+    
+    // Update UI
+    els.setBpm.value = set.bpm;
+    els.setTop.value = set.top;
+    els.setBottom.value = set.bottom;
+    els.setMeasures.value = set.measures;
+    
+    renderBeatStrip();
+  }
+}
+
+function advanceToNextSet() {
+  if (state.sets.length > 0 && els.useSetsToggle.checked) {
+    const nextIndex = (state.currentSetIndex + 1) % state.sets.length;
+    
+    // If we've reached the end and loop is disabled, stop
+    if (nextIndex === 0 && !els.loopToggle.checked) {
+      stop();
+      return;
+    }
+    
+    loadSet(nextIndex);
+  }
+}
+
+// --- Scheduler ---
+function scheduleNote(time){
+  // Check if this beat should play based on its state
+  const beatState = state.beatStates[state.beatIndex];
+  if (beatState === 0) {
+    // Beat is off, skip sound but still flash LED
+    flash(false);
+  } else {
+    // Beat is on (normal or accented)
+    const accented = beatState === 2;
+    clickSound(time, accented);
+    flash(accented);
+  }
+  
+  // Check if we're completing a measure
+  if (state.beatIndex === state.beatsPerBar - 1) {
+    state.measureIndex++;
+    
+    // Check if we need to advance to next set
+    if (state.currentSet && els.useSetsToggle.checked && state.measureIndex >= state.currentSet.measures) {
+      // Advance to next set after a short delay
+      setTimeout(() => advanceToNextSet(), 100);
+      state.measureIndex = 0;
+    }
+    // When not using sets, the metronome plays infinitely regardless of loop setting
+    // Loop only affects sets behavior
+  }
+  
+  state.beatIndex = (state.beatIndex+1)%state.beatsPerBar;
+}
+function scheduler(){
+  if(!state.isRunning) return;
+  const ctx = state.audioCtx;
+  while(state.nextNoteTime < ctx.currentTime+state.scheduleAheadTime){
+    scheduleNote(state.nextNoteTime);
+    state.nextNoteTime += nextIntervalSeconds();
+  }
+  state.schedulerId = setTimeout(scheduler,state.lookahead);
+}
+
+// --- Control updates ---
+els.setBpm.onchange = () => {
+  state.bpm = Number(els.setBpm.value);
+};
+
+els.setTop.onchange = () => {
+  state.beatsPerBar = Number(els.setTop.value);
+  renderBeatStrip();
+};
+
+els.setBottom.onchange = () => {
+  state.beatUnit = Number(els.setBottom.value);
+};
+
+// --- Start/Stop ---
+function start(){
+  initAudio();
+  state.isRunning = true;
+  state.measureIndex = 0;
+  state.beatIndex = 0; // Reset to beat 1
+  
+  // Initialize first set if using sets
+  if (els.useSetsToggle.checked && state.sets.length > 0) {
+    loadSet(0);
+  }
+  
+  state.nextNoteTime = state.audioCtx.currentTime + 0.05;
+  scheduler();
+  els.startBtn.disabled=true; els.stopBtn.disabled=false;
+}
+function stop(){
+  state.isRunning=false;
+  clearTimeout(state.schedulerId); state.schedulerId=null;
+  els.startBtn.disabled=false; els.stopBtn.disabled=true;
+}
+els.startBtn.onclick=start;
+els.stopBtn.onclick=stop;
+
+// --- Visuals ---
+function flash(accented){
+  els.led.style.background=accented?"#7c9cff":"#34d399";
+  setTimeout(()=>els.led.style.background="#1b2347",80);
+  highlightBeat(state.beatIndex);
+}
+function renderBeatStrip(){
+  els.beatStrip.innerHTML="";
+  
+  // Initialize beat states if needed
+  if (state.beatStates.length !== state.beatsPerBar) {
+    state.beatStates = [];
+    for (let i = 0; i < state.beatsPerBar; i++) {
+      // Default: first beat accented, others normal
+      state.beatStates[i] = i === 0 ? 2 : 1;
+    }
+  }
+  
+  for(let i=0;i<state.beatsPerBar;i++){
+    const div=document.createElement("div");
+    div.style.flex="1"; 
+    div.style.height="16px"; 
+    div.style.borderRadius="6px";
+    div.style.cursor="pointer";
+    div.style.transition="background-color 0.2s";
+    
+    // Set background based on beat state
+    switch(state.beatStates[i]) {
+      case 0: // off
+        div.style.background="#1a2145";
+        div.style.opacity="0.3";
+        break;
+      case 1: // normal
+        div.style.background="#1a2145";
+        div.style.opacity="1";
+        break;
+      case 2: // accented
+        div.style.background="#3b82f6";
+        div.style.opacity="1";
+        break;
+    }
+    
+    // Add click handler
+    div.onclick = () => cycleBeatState(i);
+    
+    els.beatStrip.appendChild(div);
+  }
+}
+
+// Initialize visuals
+renderBeatStrip();
+
+// Reset form inputs to defaults on page load
+function resetToDefaults() {
+  els.setBpm.value = "120";
+  els.setTop.value = "4";
+  els.setBottom.value = "4";
+  els.setMeasures.value = "4";
+  els.setName.value = "";
+  els.groupName.value = "";
+  els.useSetsToggle.checked = false;
+  els.loopToggle.checked = false;
+  
+  // Reset state to match defaults
+  state.bpm = 120;
+  state.beatsPerBar = 4;
+  state.beatUnit = 4;
+  state.sets = [];
+  state.currentSetIndex = 0;
+  state.beatIndex = 0;
+  state.measureIndex = 0;
+  state.currentSet = null;
+  state.beatStates = [];
+  
+  // Re-render to show default beat states
+  renderBeatStrip();
+}
+
+// Call reset on page load
+resetToDefaults();
+function cycleBeatState(beatIndex) {
+  // Cycle through states: off -> normal -> accented -> off
+  state.beatStates[beatIndex] = (state.beatStates[beatIndex] + 1) % 3;
+  
+  // Update the visual
+  const beatElement = els.beatStrip.children[beatIndex];
+  if (beatElement) {
+    switch(state.beatStates[beatIndex]) {
+      case 0: // off
+        beatElement.style.background="#1a2145";
+        beatElement.style.opacity="0.3";
+        break;
+      case 1: // normal
+        beatElement.style.background="#1a2145";
+        beatElement.style.opacity="1";
+        break;
+      case 2: // accented
+        beatElement.style.background="#3b82f6";
+        beatElement.style.opacity="1";
+        break;
+    }
+  }
+}
+
+function highlightBeat(i){
+  [...els.beatStrip.children].forEach((el,idx)=>{
+    el.style.outline= idx===i? "2px solid #7c9cff":"none";
+  });
+}
+/*extra comments 
+to get
+to 530
+lines */
+</script>
+</body>
+</html>
