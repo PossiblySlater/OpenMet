@@ -11,6 +11,25 @@ h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center
 .panel{background:#0f1530;border:1px solid #212848;border-radius:16px;padding:16px;margin-top:12px}
 input,select,button{padding:6px 10px;border-radius:8px;border:1px solid #2a3358;background:#0e1433;color:#fff}
 button{cursor:pointer}
+button[title] {
+  font-size: 16px;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
 .btn.primary{background:#7c9cff;border:none}
 .btn.success{background:#34d399;border:none}
 .btn.danger{background:#f87171;border:none}
@@ -24,6 +43,47 @@ tr.active-set{background:#1b2347}
 #infoPanel h2{margin:0 0 6px;font-size:18px}
 #infoPanel p{margin:0;font-size:14px;line-height:1.4}
 #closeInfo{cursor:pointer;color:#f87171;float:right;font-weight:bold}
+
+/* Settings icon styling */
+.settings-icon {
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.settings-icon:hover {
+  background-color: rgba(124, 156, 255, 0.2);
+}
+
+/* Settings panel styles */
+#settingsPanel{position:absolute;top:20px;right:20px;width:300px;background:#0f1530;border:1px solid #212848;border-radius:12px;padding:16px;display:none;z-index:10}
+#settingsPanel h2{margin:0 0 12px;font-size:18px}
+#settingsPanel h3{margin:12px 0 8px;font-size:14px;color:#8b9bb4}
+.setting-group{margin-bottom:16px}
+#closeSettings{cursor:pointer;color:#f87171;float:right;font-weight:bold}
+
+/* Light mode styles */
+body.light-mode{background:#f8fafc;color:#1e293b}
+body.light-mode .card{background:#ffffff;border:1px solid #e2e8f0}
+body.light-mode .panel{background:#f1f5f9;border:1px solid #cbd5e1}
+body.light-mode input,body.light-mode select{border:1px solid #cbd5e1;background:#ffffff;color:#1e293b}
+body.light-mode th,body.light-mode td{border-bottom:1px solid #cbd5e1}
+body.light-mode tr.active-set{background:#e2e8f0}
+body.light-mode #infoPanel,body.light-mode #settingsPanel{background:#ffffff;border:1px solid #cbd5e1}
+body.light-mode #led{background:#e2e8f0}
+body.light-mode .btn.ghost{background:#ffffff;border:1px solid #cbd5e1;color:#1e293b}
+
+/* Light mode LED and beat indicators */
+body.light-mode #led{background:#e2e8f0}
+body.light-mode .beat-indicator{background:#e2e8f0;border:1px solid #cbd5e1}
+
+/* Light mode toggle switches */
+body.light-mode .slider{background-color:#cbd5e1}
+body.light-mode .slider:before{background-color:#64748b}
+body.light-mode input:checked + .slider{background-color:#3b82f6}
+body.light-mode input:checked + .slider:before{background-color:#ffffff}
 
 /* Toggle switch styles */
 .toggle-switch {
@@ -74,11 +134,14 @@ input:checked + .slider:before {
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>
-    OpenMet
-    <span class="info-icon" id="infoIcon">&#9432;</span>
-  </h1>
+  <div class="card">
+    <h1>
+      OpenMet
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="info-icon" id="infoIcon">&#9432;</span>
+        <span class="settings-icon" id="settingsIcon">⚙️</span>
+      </div>
+    </h1>
 
   <!-- Info panel -->
   <div id="infoPanel">
@@ -87,6 +150,38 @@ input:checked + .slider:before {
     <p>OpenMet is an open-source, free, programmable metronome made to work entirely within your browser. It is focused on being school-friendly, and was made with students in mind.</p>
     <br>
     OpenMet © 2025 by Slater Feistner is licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3.0</a>
+  </div>
+
+  <!-- Settings panel -->
+  <div id="settingsPanel">
+    <span id="closeSettings">✖</span>
+    <h2>Settings</h2>
+    
+    <div class="setting-group">
+      <h3>Appearance</h3>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+        <span>Light Mode</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="lightModeToggle">
+          <span class="slider"></span>
+        </label>
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>Audio</h3>
+      <label style="display:flex;flex-direction:column;gap:4px;margin:8px 0">
+        <span>Main Beat Volume</span>
+        <input type="range" id="mainVolume" min="0" max="100" value="80" style="width:200px">
+        <span id="mainVolumeValue">80%</span>
+      </label>
+      
+      <label style="display:flex;flex-direction:column;gap:4px;margin:8px 0">
+        <span>Subdivision Volume</span>
+        <input type="range" id="subVolume" min="0" max="100" value="60" style="width:200px">
+        <span id="subVolumeValue">60%</span>
+      </label>
+    </div>
   </div>
 
   <!-- Metronome visuals -->
@@ -102,11 +197,10 @@ input:checked + .slider:before {
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <!-- Left: Start/Stop/Export/Import -->
       <div class="row">
-        <button id="startBtn" class="btn primary">Start</button>
-        <button id="stopBtn" class="btn danger" disabled>Stop</button>
-        <button id="exportBtn" class="btn success">Export JSON</button>
+        <button id="toggleBtn" class="btn primary" title="Start/Stop">▶</button>
+        <button id="exportBtn" class="btn success" title="Export Sets">📤</button>
         <input type="file" id="importFile" style="display:none">
-        <button id="importBtn" class="btn ghost">Import JSON</button>
+        <button id="importBtn" class="btn ghost" title="Import Sets">📥</button>
       </div>
 
       <!-- Right: Tempo / TS -->
@@ -117,15 +211,24 @@ input:checked + .slider:before {
         </label>
 
         <label style="margin:0;display:flex;flex-direction:column;align-items:flex-start">
-          TS
-          <div class="row">
-            <input id="setTop" type="number" min="1" max="12" value="4" style="width:50px">
-            <span>/</span>
-            <select id="setBottom" style="width:60px">
-              <option value="1">1</option><option value="2">2</option>
-              <option value="4" selected>4</option><option value="8">8</option><option value="16">16</option>
-            </select>
-          </div>
+          Subdivision
+          <select id="subdivision" style="width:70px">
+            <option value="1">None</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+        </label>
+
+        <label style="margin:0;display:flex;flex-direction:column;align-items:flex-start">
+          <input id="setTop" type="number" min="1" max="12" value="4" style="width:50px;text-align:center">
+          <div style="width:25px;height:1px;background:#e8ebff;margin:2px auto"></div>
+          <select id="setBottom" style="width:70px;text-align:center">
+            <option value="1">1</option><option value="2">2</option>
+            <option value="4" selected>4</option><option value="8">8</option><option value="16">16</option>
+          </select>
         </label>
 
 
@@ -150,7 +253,7 @@ input:checked + .slider:before {
           Measures
           <input id="setMeasures" type="number" min="1" value="4" style="width:60px">
         </label>
-        <button id="addSetBtn" class="btn success">Add Set</button>
+        <button id="addSetBtn" class="btn success" title="Add Set">➕</button>
         <label style="display:flex;align-items:center;gap:8px;margin:0">
           <span style="font-size:14px">Use Sets</span>
           <label class="toggle-switch">
@@ -165,11 +268,12 @@ input:checked + .slider:before {
             <span class="slider"></span>
           </label>
         </label>
+
       </div>
     </div>
     <h3>Program Sets</h3>
     <table>
-      <thead><tr><th>#</th><th>Set Name</th><th>BPM</th><th>TS</th><th>Measures</th><th>Actions</th></tr></thead>
+      <thead><tr><th>#</th><th>Start</th><th>End</th><th>Set Name</th><th>BPM</th><th>TS</th><th>Measures</th><th>Actions</th></tr></thead>
       <tbody id="setTable"></tbody>
     </table>
   </div>
@@ -179,12 +283,12 @@ input:checked + .slider:before {
 const els = {
   led: document.getElementById("led"),
   beatStrip: document.getElementById("beatStrip"),
-  startBtn: document.getElementById("startBtn"),
-  stopBtn: document.getElementById("stopBtn"),
+  toggleBtn: document.getElementById("toggleBtn"),
   setBpm: document.getElementById("setBpm"),
   setTop: document.getElementById("setTop"),
   setBottom: document.getElementById("setBottom"),
   setMeasures: document.getElementById("setMeasures"),
+  subdivision: document.getElementById("subdivision"),
   setName: document.getElementById("setName"),
   addSetBtn: document.getElementById("addSetBtn"),
   setTable: document.getElementById("setTable"),
@@ -196,7 +300,15 @@ const els = {
   groupName: document.getElementById("groupName"),
   infoIcon: document.getElementById("infoIcon"),
   infoPanel: document.getElementById("infoPanel"),
-  closeInfo: document.getElementById("closeInfo")
+  closeInfo: document.getElementById("closeInfo"),
+  settingsIcon: document.getElementById("settingsIcon"),
+  settingsPanel: document.getElementById("settingsPanel"),
+  closeSettings: document.getElementById("closeSettings"),
+  lightModeToggle: document.getElementById("lightModeToggle"),
+  mainVolume: document.getElementById("mainVolume"),
+  subVolume: document.getElementById("subVolume"),
+  mainVolumeValue: document.getElementById("mainVolumeValue"),
+  subVolumeValue: document.getElementById("subVolumeValue")
 };
 
 let state = {
@@ -208,37 +320,108 @@ let state = {
   bpm: 120,
   beatsPerBar: 4,
   beatUnit: 4,
+  subdivision: 1,
+  mainVolume: 0.8,
+  subVolume: 0.6,
   audioCtx: null,
   nextNoteTime: 0,
   lookahead: 25,
   scheduleAheadTime: 0.1,
   schedulerId: null,
   currentSet: null,
-  beatStates: [] // 0 = off, 1 = normal, 2 = accented
+  beatStates: [], // 0 = off, 1 = normal, 2 = accented
+  startSetIndex: 0,
+  endSetIndex: 0
 };
 
 // --- Info panel ---
 els.infoIcon.onclick = ()=> els.infoPanel.style.display="block";
 els.closeInfo.onclick = ()=> els.infoPanel.style.display="none";
 
+// --- Settings panel ---
+els.settingsIcon.onclick = ()=> els.settingsPanel.style.display="block";
+els.closeSettings.onclick = ()=> els.settingsPanel.style.display="none";
+
+// --- Settings functionality ---
+els.lightModeToggle.onchange = () => {
+  if (els.lightModeToggle.checked) {
+    document.body.classList.add("light-mode");
+  } else {
+    document.body.classList.remove("light-mode");
+  }
+  // Re-render beat strip to update colors
+  renderBeatStrip();
+};
+
+els.mainVolume.oninput = () => {
+  const value = els.mainVolume.value;
+  els.mainVolumeValue.textContent = value + "%";
+  state.mainVolume = value / 100;
+};
+
+els.subVolume.oninput = () => {
+  const value = els.subVolume.value;
+  els.subVolumeValue.textContent = value + "%";
+  state.subVolume = value / 100;
+};
+
 // --- Sets management ---
 function renderSets(){
   els.setTable.innerHTML = "";
   state.sets.forEach((s,i)=>{
     const row = document.createElement("tr");
+    // Only highlight if metronome is running, using sets, and this is the current set
     if(state.currentSetIndex === i && state.isRunning && els.useSetsToggle.checked){
       row.classList.add("active-set");
+      row.style.background = "#1b2347";
+      row.style.border = "2px solid #7c9cff";
+    } else {
+      // Reset to default styling when not highlighted
+      row.style.background = "";
+      row.style.border = "";
     }
     row.innerHTML = `<td>${i+1}</td>
+      <td><input type="checkbox" ${i === state.startSetIndex ? 'checked' : ''} onchange="setStartSet(${i})"></td>
+      <td><input type="checkbox" ${i === state.endSetIndex ? 'checked' : ''} onchange="setEndSet(${i})"></td>
       <td>${s.name}</td>
       <td>${s.bpm}</td>
       <td>${s.top}/${s.bottom}</td>
       <td>${s.measures}</td>
-      <td><button onclick="removeSet(${i})">X</button></td>`;
+      <td><button onclick="removeSet(${i})" title="Remove Set">❌</button></td>`;
     els.setTable.appendChild(row);
   });
 }
-function removeSet(i){ state.sets.splice(i,1); renderSets(); }
+function removeSet(i){ 
+  state.sets.splice(i,1); 
+  
+  // Adjust start/end indices if needed
+  if (state.startSetIndex >= state.sets.length) {
+    state.startSetIndex = Math.max(0, state.sets.length - 1);
+  }
+  if (state.endSetIndex >= state.sets.length) {
+    state.endSetIndex = Math.max(0, state.sets.length - 1);
+  }
+  
+  renderSets(); 
+}
+
+function setStartSet(index) {
+  state.startSetIndex = index;
+  // If start is after end, move end to start
+  if (state.startSetIndex > state.endSetIndex) {
+    state.endSetIndex = state.startSetIndex;
+  }
+  renderSets();
+}
+
+function setEndSet(index) {
+  state.endSetIndex = index;
+  // If end is before start, move start to end
+  if (state.endSetIndex < state.startSetIndex) {
+    state.startSetIndex = state.endSetIndex;
+  }
+  renderSets();
+}
 
 els.addSetBtn.onclick = ()=>{
   const name = els.setName.value || `Set ${state.sets.length+1}`;
@@ -247,8 +430,19 @@ els.addSetBtn.onclick = ()=>{
     bpm: Number(els.setBpm.value),
     top: Number(els.setTop.value),
     bottom: Number(els.setBottom.value),
-    measures: Number(els.setMeasures.value)
+    measures: Number(els.setMeasures.value),
+    subdivision: Number(els.subdivision.value)
   });
+  
+  // Set default start/end if this is the first set
+  if (state.sets.length === 1) {
+    state.startSetIndex = 0;
+    state.endSetIndex = 0;
+  } else if (state.sets.length === 2) {
+    // When adding second set, set end to the new set
+    state.endSetIndex = 1;
+  }
+  
   renderSets();
 };
 
@@ -283,15 +477,29 @@ els.importFile.onchange = e=>{
 function initAudio(){
   if(!state.audioCtx){ state.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
 }
-function clickSound(time, accented){
+function clickSound(time, accented, isSubdivision = false){
   const ctx = state.audioCtx; if(!ctx) return;
   const osc = ctx.createOscillator(); const gain = ctx.createGain();
-  osc.type="square"; osc.frequency.setValueAtTime(accented?1800:1200,time);
-  gain.gain.setValueAtTime(0,time);
-  gain.gain.linearRampToValueAtTime(accented?0.3:0.2,time+0.001);
-  gain.gain.exponentialRampToValueAtTime(0.001,time+0.06);
+  
+  if (isSubdivision) {
+    // Duller sound for subdivisions
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(800, time);
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.1 * state.subVolume, time + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    osc.start(time); osc.stop(time + 0.06);
+  } else {
+    // Normal sound for main beats
+    osc.type = "square";
+    osc.frequency.setValueAtTime(accented ? 1800 : 1200, time);
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime((accented ? 0.3 : 0.2) * state.mainVolume, time + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    osc.start(time); osc.stop(time + 0.08);
+  }
+  
   osc.connect(gain).connect(ctx.destination);
-  osc.start(time); osc.stop(time+0.08);
 }
 function nextIntervalSeconds(){ return (60/state.bpm)*(4/state.beatUnit); }
 
@@ -302,6 +510,7 @@ function loadSet(setIndex) {
     state.bpm = set.bpm;
     state.beatsPerBar = set.top;
     state.beatUnit = set.bottom;
+    state.subdivision = set.subdivision || 1;
     state.currentSet = set;
     state.currentSetIndex = setIndex;
     state.measureIndex = 0;
@@ -314,6 +523,7 @@ function loadSet(setIndex) {
     els.setTop.value = set.top;
     els.setBottom.value = set.bottom;
     els.setMeasures.value = set.measures;
+    els.subdivision.value = state.subdivision;
     
     renderBeatStrip();
   }
@@ -321,15 +531,23 @@ function loadSet(setIndex) {
 
 function advanceToNextSet() {
   if (state.sets.length > 0 && els.useSetsToggle.checked) {
-    const nextIndex = (state.currentSetIndex + 1) % state.sets.length;
+    const nextIndex = state.currentSetIndex + 1;
     
-    // If we've reached the end and loop is disabled, stop
-    if (nextIndex === 0 && !els.loopToggle.checked) {
-      stop();
+    // Check if we've reached the end set
+    if (nextIndex > state.endSetIndex) {
+      if (els.loopToggle.checked) {
+        // Loop back to start set
+        loadSet(state.startSetIndex);
+        renderSets();
+      } else {
+        // Stop if loop is disabled
+        stop();
+      }
       return;
     }
     
     loadSet(nextIndex);
+    renderSets(); // Update table highlighting
   }
 }
 
@@ -362,6 +580,21 @@ function scheduleNote(time){
   }
   
   state.beatIndex = (state.beatIndex+1)%state.beatsPerBar;
+  
+  // Schedule subdivisions for this beat
+  scheduleSubdivision(time);
+}
+
+// Schedule subdivision notes
+function scheduleSubdivision(time) {
+  if (state.subdivision > 1) {
+    const subdivisionInterval = nextIntervalSeconds() / state.subdivision;
+    for (let i = 1; i < state.subdivision; i++) {
+      const subdivisionTime = time + (i * subdivisionInterval);
+      // Play a duller subdivision click
+      clickSound(subdivisionTime, false, true);
+    }
+  }
 }
 function scheduler(){
   if(!state.isRunning) return;
@@ -387,6 +620,12 @@ els.setBottom.onchange = () => {
   state.beatUnit = Number(els.setBottom.value);
 };
 
+els.subdivision.onchange = () => {
+  state.subdivision = Number(els.subdivision.value);
+};
+
+
+
 // --- Start/Stop ---
 function start(){
   initAudio();
@@ -396,25 +635,49 @@ function start(){
   
   // Initialize first set if using sets
   if (els.useSetsToggle.checked && state.sets.length > 0) {
-    loadSet(0);
+    loadSet(state.startSetIndex);
+    renderSets(); // Update table highlighting
   }
   
   state.nextNoteTime = state.audioCtx.currentTime + 0.05;
   scheduler();
-  els.startBtn.disabled=true; els.stopBtn.disabled=false;
+  
+  // Update button appearance
+  els.toggleBtn.textContent = "⏹";
+  els.toggleBtn.className = "btn danger";
 }
 function stop(){
   state.isRunning=false;
   clearTimeout(state.schedulerId); state.schedulerId=null;
-  els.startBtn.disabled=false; els.stopBtn.disabled=true;
+  
+  // Update button appearance
+  els.toggleBtn.textContent = "▶";
+  els.toggleBtn.className = "btn primary";
+  
+  // Remove highlighting when stopped
+  if (els.useSetsToggle.checked) {
+    renderSets();
+  }
 }
-els.startBtn.onclick=start;
-els.stopBtn.onclick=stop;
+
+// Toggle function
+function toggleMetronome() {
+  if (state.isRunning) {
+    stop();
+  } else {
+    start();
+  }
+}
+
+els.toggleBtn.onclick = toggleMetronome;
 
 // --- Visuals ---
 function flash(accented){
+  const isLightMode = document.body.classList.contains("light-mode");
+  const defaultColor = isLightMode ? "#e2e8f0" : "#1b2347";
+  
   els.led.style.background=accented?"#7c9cff":"#34d399";
-  setTimeout(()=>els.led.style.background="#1b2347",80);
+  setTimeout(()=>els.led.style.background=defaultColor,80);
   highlightBeat(state.beatIndex);
 }
 function renderBeatStrip(){
@@ -438,13 +701,14 @@ function renderBeatStrip(){
     div.style.transition="background-color 0.2s";
     
     // Set background based on beat state
+    const isLightMode = document.body.classList.contains("light-mode");
     switch(state.beatStates[i]) {
       case 0: // off
-        div.style.background="#1a2145";
+        div.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
         div.style.opacity="0.3";
         break;
       case 1: // normal
-        div.style.background="#1a2145";
+        div.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
         div.style.opacity="1";
         break;
       case 2: // accented
@@ -469,21 +733,32 @@ function resetToDefaults() {
   els.setTop.value = "4";
   els.setBottom.value = "4";
   els.setMeasures.value = "4";
+  els.subdivision.value = "1";
   els.setName.value = "";
   els.groupName.value = "";
   els.useSetsToggle.checked = false;
   els.loopToggle.checked = false;
+  els.lightModeToggle.checked = false;
+  els.mainVolume.value = "80";
+  els.subVolume.value = "60";
+  els.mainVolumeValue.textContent = "80%";
+  els.subVolumeValue.textContent = "60%";
   
   // Reset state to match defaults
   state.bpm = 120;
   state.beatsPerBar = 4;
   state.beatUnit = 4;
+  state.subdivision = 1;
+  state.mainVolume = 0.8;
+  state.subVolume = 0.6;
   state.sets = [];
   state.currentSetIndex = 0;
   state.beatIndex = 0;
   state.measureIndex = 0;
   state.currentSet = null;
   state.beatStates = [];
+  state.startSetIndex = 0;
+  state.endSetIndex = 0;
   
   // Re-render to show default beat states
   renderBeatStrip();
@@ -498,13 +773,14 @@ function cycleBeatState(beatIndex) {
   // Update the visual
   const beatElement = els.beatStrip.children[beatIndex];
   if (beatElement) {
+    const isLightMode = document.body.classList.contains("light-mode");
     switch(state.beatStates[beatIndex]) {
       case 0: // off
-        beatElement.style.background="#1a2145";
+        beatElement.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
         beatElement.style.opacity="0.3";
         break;
       case 1: // normal
-        beatElement.style.background="#1a2145";
+        beatElement.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
         beatElement.style.opacity="1";
         break;
       case 2: // accented
@@ -520,10 +796,6 @@ function highlightBeat(i){
     el.style.outline= idx===i? "2px solid #7c9cff":"none";
   });
 }
-/*extra comments 
-to get
-to 530
-lines */
 </script>
 </body>
 </html>
