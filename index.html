@@ -424,35 +424,28 @@ html, body {
         </label>
         <!-- Add more metronome sounds here in the future -->
       </div>
-      <script>
-        // Only render the voices section if not on mobile
-        if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-          document.write(`
-            <div class="setting-group">
-              <h3>Voice</h3>
-                <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
-                  <span style="text-align:left">Voice</span>
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="voiceToggle">
-                    <span class="slider"></span>
-                  </label>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
-                  <input type="radio" name="voiceSound" id="voiceBrad" value="brad" checked>
-                  <span style="text-align:left">Brad</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
-                  <input type="radio" name="voiceSound" id="voiceGrandpa" value="grandpa">
-                  <span style="text-align:left">Grandpa</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
-                  <input type="radio" name="voiceSound" id="voiceSlater" value="slater">
-                  <span style="text-align:left">Slater</span>
-                </label>
-            </div>
-          `);
-        }
-      </script>
+      <div class="setting-group" id="voicesGroup">
+        <h3>Voice</h3>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+            <span style="text-align:left">Voice</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="voiceToggle">
+              <span class="slider"></span>
+            </label>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+            <input type="radio" name="voiceSound" id="voiceBrad" value="brad" checked>
+            <span style="text-align:left">Brad</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+            <input type="radio" name="voiceSound" id="voiceGrandpa" value="grandpa">
+            <span style="text-align:left">Grandpa</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+            <input type="radio" name="voiceSound" id="voiceSlater" value="slater">
+            <span style="text-align:left">Slater</span>
+          </label>
+        </div>
       <div class="setting-group">
         <h3>Countoff</h3>
         <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
@@ -606,7 +599,7 @@ html, body {
 // All main UI elements are collected here for easy access
 document.addEventListener('DOMContentLoaded', () => {
   hideCountoffNumber();
-  // Hide voices option on mobile
+  // Hide voices option on mobile (but keep in DOM for JS references)
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   if (isMobile) {
     const voicesGroup = document.getElementById('voicesGroup');
