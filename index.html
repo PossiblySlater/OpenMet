@@ -1112,16 +1112,55 @@ function playCountoff(callback) {
   ];
 
   // Play each number at the scheduled time
-  sequence.forEach((item) => {
+
+  // Preload and decode all voice audio files for the countoff
+  if (!state.voiceBuffers) state.voiceBuffers = {};
+  const ctx = state.audioCtx || (state.audioCtx = new (window.AudioContext||window.webkitAudioContext)());
+  const loadVoiceBuffer = (audioId) => {
+    return new Promise((resolve) => {
+      if (state.voiceBuffers[audioId]) return resolve(state.voiceBuffers[audioId]);
+      const audio = document.getElementById(audioId);
+      if (!audio) return resolve(null);
+      // Fetch the audio file as array buffer
+      fetch(audio.src)
+        .then(r => r.arrayBuffer())
+        .then(data => ctx.decodeAudioData(data, (buf) => {
+          state.voiceBuffers[audioId] = buf;
+          resolve(buf);
+        }, () => resolve(null)));
+    });
+  };
+
+  // Gather all needed audio IDs
+  const audioIds = Array.from(new Set(sequence.map(item => voicePrefix + item.num)));
+  Promise.all(audioIds.map(loadVoiceBuffer)).then(() => {
+    sequence.forEach((item) => {
+      setTimeout(() => {
+        // Play using Web Audio API if possible
+        let audioId = voicePrefix + item.num;
+        let buf = state.voiceBuffers[audioId];
+        if (buf) {
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          src.start();
+        } else {
+          // fallback to HTMLAudioElement
+          let audio = document.getElementById(audioId);
+          if (audio) {
+            audio.currentTime = 0;
+            audio.play();
+          }
+        }
+        showCountoffNumber(item.num);
+      }, item.delay);
+    });
+
+    // Hide the overlay right after the last countoff number
     setTimeout(() => {
-      showCountoffNumber(item.num);
-      let audioId = voicePrefix + item.num;
-      let audio = document.getElementById(audioId);
-      if (audio) {
-        audio.currentTime = 0;
-        audio.play();
-      }
-    }, item.delay);
+      hideCountoffNumber();
+      callback();
+    }, interval * 8);
   });
 
   // Hide the overlay right after the last countoff number
