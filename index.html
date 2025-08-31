@@ -826,30 +826,44 @@ els.addSetBtn.onclick = ()=>{
 };
 
 // --- EXPORT / IMPORT SETS ---
-// Export sets as JSON file
+// Export sets as .openmet file (JSON with .openmet extension, group name as filename)
 els.exportBtn.onclick = ()=>{
   const data = {
     groupName: els.groupName.value || "Untitled Group",
     sets: state.sets
   };
   const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  // Sanitize group name for filename
+  let groupName = (els.groupName.value || "Untitled Group").replace(/[^a-z0-9_\- ]/gi, "_").replace(/\s+/g, "_");
+  if (!groupName) groupName = "Untitled_Group";
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href=url; a.download="openmet_sets.json"; a.click();
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = groupName + ".openmet";
+  a.click();
   URL.revokeObjectURL(url);
 };
-// Import sets from JSON file
+// Import sets from .openmet or .json file
 els.importBtn.onclick = ()=> els.importFile.click();
 els.importFile.onchange = e=>{
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = ()=>{
-    try{
-      const data = JSON.parse(reader.result);
-      state.sets = data.sets || [];
+    let data = null;
+    try {
+      data = JSON.parse(reader.result);
+    } catch (e) {
+      alert("Invalid file: not valid JSON");
+      return;
+    }
+    if (data && data.sets && Array.isArray(data.sets)) {
+      state.sets = data.sets;
       els.groupName.value = data.groupName || "";
       renderSets();
-    }catch(e){ alert("Invalid JSON"); }
+    } else {
+      alert("Invalid file: missing sets array");
+    }
   };
   reader.readAsText(file);
 };
