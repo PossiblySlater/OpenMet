@@ -262,6 +262,20 @@ input:checked + .slider:before {
   #beatStrip {
     gap: 3px !important;
   }
+
+  /* Center the tempo, subdivision, and time signature controls */
+  .panel > .row[style*="margin-left:auto"] {
+    margin-left: 0 !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center;
+  }
+  .panel > .row[style*="margin-left:auto"] label {
+    align-items: center !important;
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 /* Make buttons and inputs easier to tap */
