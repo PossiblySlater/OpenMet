@@ -635,10 +635,10 @@ const els = {
   subVolume: document.getElementById("subVolume"),
   mainVolumeValue: document.getElementById("mainVolumeValue"),
   subVolumeValue: document.getElementById("subVolumeValue"),
-  voiceToggle: document.getElementById("voiceToggle"),
-  voiceBrad: document.getElementById("voiceBrad"),
-  voiceGrandpa: document.getElementById("voiceGrandpa"),
-  voiceSlater: document.getElementById("voiceSlater"),
+  voiceToggle: document.getElementById("voiceToggle") || {},
+  voiceBrad: document.getElementById("voiceBrad") || {},
+  voiceGrandpa: document.getElementById("voiceGrandpa") || {},
+  voiceSlater: document.getElementById("voiceSlater") || {},
   countoffToggle: document.getElementById("countoffToggle"),
 };
 
