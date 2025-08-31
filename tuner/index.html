@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenMet Tuner</title>
+<link rel="stylesheet" href="../index.html">
+<style>
+body{margin:0;font-family:sans-serif;background:#0f1220;color:#e8ebff;display:grid;place-items:center;min-height:100vh}
+.card{width:min(1000px,100%);background:#161a2b;border-radius:20px;padding:20px;position:relative}
+h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+.panel{background:#0f1530;border:1px solid #212848;border-radius:16px;padding:16px;margin-top:12px}
+.tuner-display{display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:30px;}
+.note{font-size:5em;font-weight:bold;letter-spacing:0.1em;}
+.cents{font-size:2em;margin-top:10px;}
+.bar-bg{width:320px;height:18px;background:#23284a;border-radius:9px;position:relative;overflow:hidden;}
+.bar-fg{height:100%;position:absolute;top:0;left:50%;transform:translateX(-50%);transition:left 0.1s;}
+.bar-fg-indicator{width:4px;height:100%;background:#7c9cff;position:absolute;top:0;left:50%;transform:translateX(-50%);border-radius:2px;}
+.bar-labels{display:flex;justify-content:space-between;width:320px;font-size:1em;color:#8b9bb4;margin-top:2px;}
+.status{margin-top:18px;font-size:1.1em;color:#f87171;}
+@media (max-width: 700px) {
+	.card {width:98vw;padding:8px;border-radius:0;}
+	.panel {padding:8px;margin-top:8px;border-radius:10px;}
+	.tuner-display {gap:12px;margin-top:18px;}
+	.note {font-size:3em;}
+	.cents {font-size:1.2em;}
+	.bar-bg, .bar-labels {width:98vw;max-width:320px;}
+}
+</style>
+</head>
+<body>
+	<!-- Metronome link top right -->
+	<a href="../index.html" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Metronome</a>
+<div class="card">
+	<h1>OpenMet Tuner</h1>
+	<div class="panel">
+		<div class="tuner-display">
+			<div class="note" id="note">--</div>
+			<div class="cents" id="cents">--</div>
+			<div class="bar-bg">
+				<div class="bar-fg-indicator" id="barIndicator"></div>
+			</div>
+			<div class="bar-labels"><span>-50¢</span><span>In Tune</span><span>+50¢</span></div>
+			<div class="status" id="status"></div>
+		</div>
+	</div>
+	<div style="position:fixed;bottom:10px;left:10px;z-index:100;font-size:13px;color:#8b9bb4;display:flex;align-items:center;gap:10px;">
+		<span>OpenMet © 2025 by Slater Feistner</span>
+		<a href="https://github.com/PossiblySlater/OpenMet" target="_blank" style="color:#7c9cff;text-decoration:none;display:flex;align-items:center;gap:4px;">GitHub</a>
+	</div>
+</div>
+<script>
+// --- Tuner Logic ---
+const noteElem = document.getElementById('note');
+const centsElem = document.getElementById('cents');
+const barIndicator = document.getElementById('barIndicator');
+const statusElem = document.getElementById('status');
+
+const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+function autoCorrelate(buf, sampleRate) {
+	// Basic auto-correlation algorithm for pitch detection
+	let SIZE = buf.length;
+	let rms = 0;
+	for (let i = 0; i < SIZE; i++) {
+		let val = buf[i];
+		rms += val * val;
+	}
+	rms = Math.sqrt(rms / SIZE);
+	if (rms < 0.01) return -1; // Too quiet
+
+	let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+	for (let i = 0; i < SIZE / 2; i++) {
+		if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+	}
+	for (let i = 1; i < SIZE / 2; i++) {
+		if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+	}
+
+	buf = buf.slice(r1, r2);
+	SIZE = buf.length;
+
+	let c = new Array(SIZE).fill(0);
+	for (let i = 0; i < SIZE; i++) {
+		for (let j = 0; j < SIZE - i; j++) {
+			c[i] = c[i] + buf[j] * buf[j + i];
+		}
+	}
+	let d = 0; while (c[d] > c[d + 1]) d++;
+	let maxval = -1, maxpos = -1;
+	for (let i = d; i < SIZE; i++) {
+		if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+	}
+	let T0 = maxpos;
+	if (T0 === -1) return -1;
+	return sampleRate / T0;
+}
+
+function getNote(frequency) {
+	const A4 = 440;
+	const noteNum = 12 * (Math.log(frequency / A4) / Math.log(2));
+	return Math.round(noteNum) + 69;
+}
+
+function noteNameFromMidi(midi) {
+	return noteStrings[midi % 12] + Math.floor(midi / 12 - 1);
+}
+
+function getCents(frequency, midi) {
+	const A4 = 440;
+	const noteFreq = A4 * Math.pow(2, (midi - 69) / 12);
+	return Math.floor(1200 * Math.log2(frequency / noteFreq));
+}
+
+let audioContext, analyser, buflen = 2048, buf, source;
+
+async function startTuner() {
+	try {
+		audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		source = audioContext.createMediaStreamSource(stream);
+		analyser = audioContext.createAnalyser();
+		analyser.fftSize = buflen;
+		source.connect(analyser);
+		buf = new Float32Array(buflen);
+		updateTuner();
+		statusElem.textContent = '';
+	} catch (e) {
+		statusElem.textContent = 'Microphone access denied or unavailable.';
+	}
+}
+
+function updateTuner() {
+	analyser.getFloatTimeDomainData(buf);
+	const freq = autoCorrelate(buf, audioContext.sampleRate);
+		// --- Smoothing logic ---
+		if (!window._centsHistory) window._centsHistory = [];
+		if (!window._lastLeft) window._lastLeft = 50;
+		if (freq > 50 && freq < 2000) {
+			const midi = getNote(freq);
+			const note = noteNameFromMidi(midi);
+			const cents = getCents(freq, midi);
+			// Keep a rolling average of the last 8 cents values
+			window._centsHistory.push(cents);
+			if (window._centsHistory.length > 8) window._centsHistory.shift();
+			const avgCents = window._centsHistory.reduce((a,b)=>a+b,0)/window._centsHistory.length;
+			noteElem.textContent = note;
+			centsElem.textContent = (avgCents > 0 ? '+' : '') + Math.round(avgCents) + '¢';
+			// Animate indicator smoothly
+			let pct = Math.max(-50, Math.min(50, avgCents));
+			let targetLeft = 50 + pct;
+			// Smoothly animate the indicator
+			window._lastLeft = window._lastLeft + (targetLeft - window._lastLeft) * 0.25;
+			barIndicator.style.left = window._lastLeft + '%';
+			barIndicator.style.background = Math.abs(avgCents) <= 5 ? '#34d399' : '#7c9cff';
+		} else {
+			noteElem.textContent = '--';
+			centsElem.textContent = '--';
+			window._centsHistory = [];
+			window._lastLeft = window._lastLeft + (50 - window._lastLeft) * 0.25;
+			barIndicator.style.left = window._lastLeft + '%';
+			barIndicator.style.background = '#7c9cff';
+		}
+		requestAnimationFrame(updateTuner);
+}
+
+startTuner();
+</script>
+</body>
+</html>
