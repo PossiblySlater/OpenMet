@@ -425,8 +425,8 @@ html, body {
         <!-- Add more metronome sounds here in the future -->
       </div>
       <script>
-        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (!isMobile) {
+        // Only render the voices section if not on mobile
+        if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
           document.write(`
             <div class="setting-group">
               <h3>Voice</h3>
