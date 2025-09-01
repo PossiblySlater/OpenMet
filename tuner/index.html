@@ -18,6 +18,15 @@ h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center
 .bar-fg-indicator{width:4px;height:100%;background:#7c9cff;position:absolute;top:0;left:50%;transform:translateX(-50%);border-radius:2px;}
 .bar-labels{display:flex;justify-content:space-between;width:320px;font-size:1em;color:#8b9bb4;margin-top:2px;}
 .status{margin-top:18px;font-size:1.1em;color:#f87171;}
+.light-mode{background:#f8fafc;color:#1e293b;}
+.light-mode .card{background:#fff;border:1px solid #e2e8f0;}
+.light-mode .panel{background:#f1f5f9;border:1px solid #cbd5e1;}
+.light-mode .tuner-display .note,.light-mode .tuner-display .cents{color:#1e293b;}
+.light-mode .bar-bg{background:#e2e8f0;}
+.light-mode .bar-fg-indicator{background:#3b82f6;}
+.light-mode .bar-labels{color:#64748b;}
+.light-mode .status{color:#f87171;}
+.light-mode select,.light-mode input[type="checkbox"]{background:#fff;color:#1e293b;border:1px solid #cbd5e1;}
 @media (max-width: 700px) {
 	.card {width:98vw;padding:8px;border-radius:0;}
 	.panel {padding:8px;margin-top:8px;border-radius:10px;}
@@ -33,15 +42,41 @@ h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center
 	<a href="https://open-met.org" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Metronome</a>
 <div class="card">
 	<h1>OpenMet Tuner</h1>
-	<div class="panel">
-		<div class="tuner-display">
-			<div class="note" id="note">--</div>
-			<div class="cents" id="cents">--</div>
-			<div class="bar-bg">
-				<div class="bar-fg-indicator" id="barIndicator"></div>
+	<div style="display:flex;gap:18px;flex-wrap:wrap">
+		<div class="panel" style="flex:2 1 320px;min-width:260px;">
+			<div class="tuner-display">
+				<div class="note" id="note">--</div>
+				<div class="cents" id="cents">--</div>
+				<div class="bar-bg">
+					<div class="bar-fg-indicator" id="barIndicator"></div>
+				</div>
+				<div class="bar-labels"><span>-50¢</span><span>In Tune</span><span>+50¢</span></div>
+				<div class="status" id="status"></div>
 			</div>
-			<div class="bar-labels"><span>-50¢</span><span>In Tune</span><span>+50¢</span></div>
-			<div class="status" id="status"></div>
+		</div>
+		<div class="panel" style="flex:1 1 220px;min-width:180px;max-width:320px;">
+			<h2 style="margin-top:0;font-size:1.2em">Settings</h2>
+			<div style="margin-bottom:18px">
+				<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+					<span>Light Mode</span>
+					<input type="checkbox" id="lightModeToggle">
+				</label>
+			</div>
+			<div>
+				<label for="transposeSelect" style="display:block;margin-bottom:8px">Instrument Key</label>
+				<select id="transposeSelect" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid #2a3358;background:#0e1433;color:#fff">
+					<option value="0">C (Concert)</option>
+					<option value="2">D</option>
+					<option value="3">Eb</option>
+					<option value="5">F</option>
+					<option value="7">G</option>
+					<option value="9">A</option>
+					<option value="10">Bb</option>
+					<option value="-5">Bass Clef (F)</option>
+					<option value="-2">Alto Sax (Eb)</option>
+					<option value="-7">French Horn (F)</option>
+				</select>
+			</div>
 		</div>
 	</div>
 	<div style="position:fixed;bottom:10px;left:10px;z-index:100;font-size:13px;color:#8b9bb4;display:flex;align-items:center;gap:10px;">
@@ -55,8 +90,11 @@ const noteElem = document.getElementById('note');
 const centsElem = document.getElementById('cents');
 const barIndicator = document.getElementById('barIndicator');
 const statusElem = document.getElementById('status');
+const transposeSelect = document.getElementById('transposeSelect');
+const lightModeToggle = document.getElementById('lightModeToggle');
 
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+let transpose = 0;
 
 function autoCorrelate(buf, sampleRate) {
 	// Basic auto-correlation algorithm for pitch detection
@@ -103,7 +141,9 @@ function getNote(frequency) {
 }
 
 function noteNameFromMidi(midi) {
-	return noteStrings[midi % 12] + Math.floor(midi / 12 - 1);
+	// Apply transposition
+	let transposedMidi = midi + transpose;
+	return noteStrings[transposedMidi % 12] + Math.floor(transposedMidi / 12 - 1);
 }
 
 function getCents(frequency, midi) {
@@ -133,35 +173,58 @@ async function startTuner() {
 function updateTuner() {
 	analyser.getFloatTimeDomainData(buf);
 	const freq = autoCorrelate(buf, audioContext.sampleRate);
-		// --- Smoothing logic ---
-		if (!window._centsHistory) window._centsHistory = [];
-		if (!window._lastLeft) window._lastLeft = 50;
-		if (freq > 50 && freq < 2000) {
-			const midi = getNote(freq);
-			const note = noteNameFromMidi(midi);
-			const cents = getCents(freq, midi);
-			// Keep a rolling average of the last 8 cents values
-			window._centsHistory.push(cents);
-			if (window._centsHistory.length > 8) window._centsHistory.shift();
-			const avgCents = window._centsHistory.reduce((a,b)=>a+b,0)/window._centsHistory.length;
-			noteElem.textContent = note;
-			centsElem.textContent = (avgCents > 0 ? '+' : '') + Math.round(avgCents) + '¢';
-			// Animate indicator smoothly
-			let pct = Math.max(-50, Math.min(50, avgCents));
-			let targetLeft = 50 + pct;
-			// Smoothly animate the indicator
-			window._lastLeft = window._lastLeft + (targetLeft - window._lastLeft) * 0.25;
-			barIndicator.style.left = window._lastLeft + '%';
-			barIndicator.style.background = Math.abs(avgCents) <= 5 ? '#34d399' : '#7c9cff';
-		} else {
-			noteElem.textContent = '--';
-			centsElem.textContent = '--';
-			window._centsHistory = [];
-			window._lastLeft = window._lastLeft + (50 - window._lastLeft) * 0.25;
-			barIndicator.style.left = window._lastLeft + '%';
-			barIndicator.style.background = '#7c9cff';
-		}
-		requestAnimationFrame(updateTuner);
+	// --- Smoothing logic ---
+	if (!window._centsHistory) window._centsHistory = [];
+	if (!window._lastLeft) window._lastLeft = 50;
+	if (freq > 50 && freq < 2000) {
+		const midi = getNote(freq);
+		const note = noteNameFromMidi(midi);
+		const cents = getCents(freq, midi);
+		window._centsHistory.push(cents);
+		if (window._centsHistory.length > 8) window._centsHistory.shift();
+		const avgCents = window._centsHistory.reduce((a,b)=>a+b,0)/window._centsHistory.length;
+		noteElem.textContent = note;
+		centsElem.textContent = (avgCents > 0 ? '+' : '') + Math.round(avgCents) + '¢';
+		let pct = Math.max(-50, Math.min(50, avgCents));
+		let targetLeft = 50 + pct;
+		window._lastLeft = window._lastLeft + (targetLeft - window._lastLeft) * 0.25;
+		barIndicator.style.left = window._lastLeft + '%';
+		barIndicator.style.background = Math.abs(avgCents) <= 5 ? '#34d399' : '#7c9cff';
+	} else {
+		noteElem.textContent = '--';
+		centsElem.textContent = '--';
+		window._centsHistory = [];
+		window._lastLeft = window._lastLeft + (50 - window._lastLeft) * 0.25;
+		barIndicator.style.left = window._lastLeft + '%';
+		barIndicator.style.background = '#7c9cff';
+	}
+	requestAnimationFrame(updateTuner);
+}
+// --- Settings Logic ---
+transposeSelect.onchange = function() {
+	transpose = Number(this.value);
+	localStorage.setItem('openmet-tuner-transpose', transpose);
+};
+// Load saved transpose
+const savedTranspose = localStorage.getItem('openmet-tuner-transpose');
+if (savedTranspose !== null) {
+	transpose = Number(savedTranspose);
+	transposeSelect.value = savedTranspose;
+}
+
+lightModeToggle.onchange = function() {
+	if (this.checked) {
+		document.body.classList.add('light-mode');
+		localStorage.setItem('openmet-tuner-lightmode', 'true');
+	} else {
+		document.body.classList.remove('light-mode');
+		localStorage.setItem('openmet-tuner-lightmode', 'false');
+	}
+};
+// Load saved light mode
+if (localStorage.getItem('openmet-tuner-lightmode') === 'true') {
+	lightModeToggle.checked = true;
+	document.body.classList.add('light-mode');
 }
 
 startTuner();

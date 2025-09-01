@@ -352,12 +352,6 @@ html, body {
 <body>
   <!-- Tuner link top right -->
   <a href="https://open-met.org/tuner/" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Tuner</a>
-  <!-- Countoff overlay -->
-  <div id="countoffOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:200;pointer-events:none;display:flex;align-items:center;justify-content:center;">
-    <div style="background:rgba(22,26,43,0.95);color:#fff;padding:40px 60px;border-radius:24px;font-size:5em;font-weight:bold;box-shadow:0 4px 32px #000a;min-width:180px;text-align:center;user-select:none;">
-      <span id="countoffNumber">1</span>
-    </div>
-  </div>
   <div class="card">
     <h1>
       OpenMet
@@ -449,14 +443,6 @@ html, body {
           </label>
         </div>
       <div class="setting-group">
-        <h3>Countoff</h3>
-        <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
-          <span style="text-align:left">Countoff</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="countoffToggle">
-            <span class="slider"></span>
-          </label>
-        </label>
       </div>
     </div>
   </div>
@@ -600,7 +586,6 @@ html, body {
 // --- ELEMENT REFERENCES ---
 // All main UI elements are collected here for easy access
 document.addEventListener('DOMContentLoaded', () => {
-  hideCountoffNumber();
   // Hide voices option on mobile (but keep in DOM for JS references)
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   if (isMobile) {
@@ -641,25 +626,11 @@ const els = {
   voiceBrad: document.getElementById("voiceBrad") || {},
   voiceGrandpa: document.getElementById("voiceGrandpa") || {},
   voiceSlater: document.getElementById("voiceSlater") || {},
-  countoffToggle: document.getElementById("countoffToggle"),
 };
 
 // --- APPLICATION STATE ---
 
 // --- COUNT-OFF OVERLAY LOGIC ---
-function showCountoffNumber(num) {
-  const overlay = document.getElementById('countoffOverlay');
-  const numberSpan = document.getElementById('countoffNumber');
-  if (overlay && numberSpan) {
-    numberSpan.textContent = num;
-    overlay.style.display = 'flex';
-  }
-}
-
-function hideCountoffNumber() {
-  const overlay = document.getElementById('countoffOverlay');
-  if (overlay) overlay.style.display = 'none';
-}
 // All runtime state is stored here
 let state = {
   sets: [],
@@ -1102,95 +1073,9 @@ let voicePrefix = getSelectedVoicePrefix();
 // Start the metronome
 function start(){
   initAudio();
-  // If countoff is enabled, play it first, then start metronome
-  if (els.countoffToggle && els.countoffToggle.checked) {
-    els.toggleBtn.disabled = true;
-    playCountoff(() => {
-      els.toggleBtn.disabled = false;
-      actuallyStartMet();
-    });
-  } else {
-    actuallyStartMet();
-  }
+  actuallyStartMet();
 }
 
-function playCountoff(callback) {
-  // Determine which voice
-  let voicePrefix = "grandpaVoice";
-  if (els.voiceSlater && els.voiceSlater.checked) voicePrefix = "slaterVoice";
-  if (els.voiceBrad && els.voiceBrad.checked) voicePrefix = "bradVoice";
-
-  // Calculate interval between beats (in ms)
-  const interval = (60 / state.bpm) * (4 / state.beatUnit) * 1000;
-
-  // Schedule: "5" (beat 1), "6" (beat 3), "5,6,7,8" (next 4 beats)
-  const sequence = [
-    { num: 5, delay: 0 },                // beat 1
-    { num: 6, delay: interval * 2 },     // beat 3
-    { num: 5, delay: interval * 4 },     // next 4 beats
-    { num: 6, delay: interval * 5 },
-    { num: 7, delay: interval * 6 },
-    { num: 8, delay: interval * 7 }
-  ];
-
-  // Play each number at the scheduled time
-
-  // Preload and decode all voice audio files for the countoff
-  if (!state.voiceBuffers) state.voiceBuffers = {};
-  const ctx = state.audioCtx || (state.audioCtx = new (window.AudioContext||window.webkitAudioContext)());
-  const loadVoiceBuffer = (audioId) => {
-    return new Promise((resolve) => {
-      if (state.voiceBuffers[audioId]) return resolve(state.voiceBuffers[audioId]);
-      const audio = document.getElementById(audioId);
-      if (!audio) return resolve(null);
-      // Fetch the audio file as array buffer
-      fetch(audio.src)
-        .then(r => r.arrayBuffer())
-        .then(data => ctx.decodeAudioData(data, (buf) => {
-          state.voiceBuffers[audioId] = buf;
-          resolve(buf);
-        }, () => resolve(null)));
-    });
-  };
-
-  // Gather all needed audio IDs
-  const audioIds = Array.from(new Set(sequence.map(item => voicePrefix + item.num)));
-  Promise.all(audioIds.map(loadVoiceBuffer)).then(() => {
-    sequence.forEach((item) => {
-      setTimeout(() => {
-        // Play using Web Audio API if possible
-        let audioId = voicePrefix + item.num;
-        let buf = state.voiceBuffers[audioId];
-        if (buf) {
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          src.connect(ctx.destination);
-          src.start();
-        } else {
-          // fallback to HTMLAudioElement
-          let audio = document.getElementById(audioId);
-          if (audio) {
-            audio.currentTime = 0;
-            audio.play();
-          }
-        }
-        showCountoffNumber(item.num);
-      }, item.delay);
-    });
-
-    // Hide the overlay right after the last countoff number
-    setTimeout(() => {
-      hideCountoffNumber();
-      callback();
-    }, interval * 8);
-  });
-
-  // Hide the overlay right after the last countoff number
-  setTimeout(() => {
-    hideCountoffNumber();
-    callback();
-  }, interval * 8);
-}
 
 function actuallyStartMet() {
   state.isRunning = true;
@@ -1203,6 +1088,7 @@ function actuallyStartMet() {
     renderSets(); // Update table highlighting
   }
 
+  // Always start metronome immediately
   state.nextNoteTime = state.audioCtx.currentTime + 0.05;
   scheduler();
 
