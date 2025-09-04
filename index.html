@@ -1,10 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<audio id="flashbangSound" src="flashbang.mp3" preload="auto"></audio>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenMet</title>
 <style>
+/* Flashbang overlay */
+#flashbangOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.5s;
+  filter: blur(0px);
+}
+#flashbangOverlay.active {
+  opacity: 1;
+  filter: blur(8px);
+  transition: opacity 0.1s, filter 0.1s;
+}
 /* --- GENERAL STYLES --- */
 body{margin:0;font-family:sans-serif;background:#0f1220;color:#e8ebff;display:grid;place-items:center;min-height:100vh}
 .card{width:min(1000px,100%);background:#161a2b;border-radius:20px;padding:20px;position:relative}
@@ -350,6 +367,7 @@ html, body {
 </style>
 </head>
 <body>
+  <div id="flashbangOverlay"></div>
   <!-- Tuner link top right -->
   <a href="https://open-met.org/tuner/" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Tuner</a>
   <div class="card">
@@ -665,6 +683,25 @@ els.closeSettings.onclick = ()=> els.settingsPanel.style.display="none";
 // Light mode toggle
 els.lightModeToggle.onchange = () => {
   if (els.lightModeToggle.checked) {
+    // Flashbang effect
+    const overlay = document.getElementById('flashbangOverlay');
+    const sound = document.getElementById('flashbangSound');
+    overlay.classList.add('active');
+    overlay.style.opacity = '1';
+    overlay.style.filter = 'blur(8px)';
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play();
+    }
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 2s, filter 2s';
+      overlay.style.opacity = '0';
+      overlay.style.filter = 'blur(0px)';
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.style.transition = '';
+      }, 2000);
+    }, 1200);
     document.body.classList.add("light-mode");
     localStorage.setItem('openmet-light-mode', 'true');
   } else {
