@@ -600,6 +600,75 @@ html, body {
   <audio id="bradVoice12" src="Voices/Brad/12.mp3"></audio>
 </div>
 
+<!-- DR mode quote display and input -->
+<div id="drQuote" style="display:none;position:fixed;bottom:10px;right:10px;z-index:100;font-size:13px;color:#f87171;display:flex;align-items:center;gap:10px;background:none;padding:0;box-shadow:none;border-radius:0;cursor:pointer;pointer-events:auto;text-align:right;line-height:1.4" title="Click for a new quote"></div>
+<textarea id="drQuotesInput" style="display:none;">
+Stop Everything - Kris Get The Banana
+Coming Straight From Your House!
+REBUILD MY KIDS!
+THAT'S RIGHT! NOW'S YOUR CHANCE TO BE A [[Big Shot]]
+HEY EVERY    !
+1997 KROMER
+SELECT THE HEAD THAT YOU PREFER
+EV3RY  BUDDY  'S FAVORITE ((Number 1 Rated Salesman1997))
+ [Hyperlink Blocked] 
+Potassium
+Wasn't that quiz just oodles of fun, folks!?
+Just look at that Fun-o-meter!!! Haha!!!
+Fresh from the Juice, Fresh from the Juice!
+IT'S! TV! TIME!
+He's groovy - and never glooby!
+You love TV... don't you?
+LIGHT nER! HEY-HE Y HEY!!!
+LOOKS LIKE YOU'RE [[All Alone On A Late Night?]]
+LIVING IN A GODDAMN GARBAGE CAN???
+WELL HAVE I GOT A [[Specil Deal]] FOR LONELY [[Hearts]] LIKE YOU!!
+WHY BE THE [[Little Sponge]] WHO HATES ITS [[$4.99]] LIFE
+[[BIG SHOT!!!!!]]
+YOU WANT IT. YOU WANT [[Hyperlink Blocked]], DON'T YOU.
+Ah My Sweet Idiot Children
+(Sort Of Regal Mostly Cruel Laughter)
+Oh I Wonder (I Actually Know The Answer)
+Seems That You Failed To Notice - The Giant Freaking Robot In The Middle Of My Palace
+You Are Definitely Going To Kick: My Ass
+Oh No What That
+Imagine Poor Noelle Clipping Into A Wall Somewhere. Wasting Away From Potassium Deficiency
+Now That We Are Trucies I Feel Like We Are On the Same... Mathematical Wavelength
+Ok There's Nothing Wrong With Him He's Just Annoying
+I Only Play Mobile Games
+Berdly gives the secret sign! But Queen is busy with a coloring book!
+Bro That’s Weird But Ok
+Hey Chat Does Anyone Know What Happened To That Stuff
+You Wanna Fight, Loser?
+I Have No Time For Such Frivolitites (And Would Kick Your Ass) 
+Teens Are Merely Big Children (And Adults Are Bigger Children) 
+I Only Have Like 4 Cages
+Whoops That Was My Extra Dangerous Glass
+I'm So Distracted Right Now
+Running Laughing Protocol - Ha Ha Ha Ha Ha Ha Ha Ha Ha Ha Ha
+No I Am A Computer (Smart)
+(I Have No Damn Clue Just Go With It)
+I Did Not Ask Him I Did Not Ask Him I Did Not Ask Him I Did Not Ask Him I Did Not Ask Him
+Honk Honk No It’s Just The Sounds Of The City
+I'm Just A Computer I Dont Know Everything LMAO
+Oooo Ouchie Mama
+Oh Damn I Did Not Know That
+Lightners Love Traffic They Look It Up All The Time
+Self-Esteem Crushing Efficiency 300% And Rising
+Don't Worry That Was My Throwing Glass It's Safe
+I've Had Like 4 Of These All-Ages Appropriate Glasses Of Pure Battery Acid
+Get A Load Of The Guy With No Meat Or Fruit In His Castle Walls
+Oh My Circuits Kris Get In The Car
+Wow, what an AMAZING performance!
+And get me a cup of coffee.
+Sorry kids, no falling rocks today.
+WHAT THE...!? HOW THE WHAT THE MAMA WHAT THE HECK THE WOH WOAH WOH HECK HECK WHAT THE
+COWABUNGA-DERO! THAT'S THE SMOOTH TASTE OF TV TIME!
+Sick of the CLASSICS? We'll make 'em NEO! NEO shows, NEO programs, just watch, watch, WATCH!
+CHAOS, CHAOS!
+I Just Want To Make Everyone Smile And If I Become An Evil Villain To Accomplish That Is That Bad?
+Go play minecrap or something!</textarea>
+
 <script>
 // --- ELEMENT REFERENCES ---
 // All main UI elements are collected here for easy access
@@ -972,15 +1041,14 @@ function scheduleNote(time){
   } else {
     // Beat is on (normal or accented)
     const accented = beatState === 2;
-
+    flash(accented); // Always flash, even in DR mode
     // --- Voice logic ---
-    if (
-      drMode
-    ) {
-      // Play random DR SFX
+    if (drMode) {
+      // Only play random DR SFX
       let sfx = pickDrSfx();
       let audio = new Audio('SFX/dr/' + sfx);
       audio.play();
+      // No clickSound, no voice
     } else if (
       els.voiceToggle && els.voiceToggle.checked
     ) {
@@ -1002,11 +1070,12 @@ function scheduleNote(time){
           }
         }
       }
+      // Always play the click sound as well
+      clickSound(time, accented);
+    } else {
+      // Normal click only
+      clickSound(time, accented);
     }
-    // Always play the click sound as well
-    clickSound(time, accented);
-
-    flash(accented);
   }
   
   // Check if we're completing a measure
@@ -1072,6 +1141,7 @@ let drSfxList = [
   {file: 'explosion.mp3', weight: 3.33},
   {file: 'ominous.mp3', weight: 3.33}
 ];
+let drQuotes = null;
 function pickDrSfx() {
   // Weighted random pick
   let total = drSfxList.reduce((sum, s) => sum + s.weight, 0);
@@ -1081,6 +1151,48 @@ function pickDrSfx() {
     r -= s.weight;
   }
   return 'splat.mp3';
+}
+function showDrQuote() {
+  const el = document.getElementById('drQuote');
+  if (!drQuotes) {
+    // Get from textarea
+    const ta = document.getElementById('drQuotesInput');
+    drQuotes = ta.value.split(/\r?\n/).filter(l=>l.trim().length>0);
+  }
+  const line = drQuotes[Math.floor(Math.random()*drQuotes.length)];
+  el.textContent = line;
+  el.style.display = 'block';
+}
+
+// Make the quote clickable to pick a new one
+document.addEventListener('DOMContentLoaded', function() {
+  const drQuoteEl = document.getElementById('drQuote');
+  if (drQuoteEl) {
+    drQuoteEl.addEventListener('click', function(e) {
+      // Only pick a new quote if visible
+      if (drQuoteEl.style.display !== 'none') {
+        // Pick a new quote (avoid repeating the same one if possible)
+        if (!drQuotes) {
+          const ta = document.getElementById('drQuotesInput');
+          drQuotes = ta.value.split(/\r?\n/).filter(l=>l.trim().length>0);
+        }
+        let newLine;
+        let tries = 0;
+        do {
+          newLine = drQuotes[Math.floor(Math.random()*drQuotes.length)];
+          tries++;
+        } while (newLine === drQuoteEl.textContent && drQuotes.length > 1 && tries < 5);
+        drQuoteEl.textContent = newLine;
+        // Play splat sound
+        let splat = new Audio('SFX/dr/splat.mp3');
+        splat.play();
+      }
+    });
+  }
+});
+function hideDrQuote() {
+  const el = document.getElementById('drQuote');
+  el.style.display = 'none';
 }
 els.voiceToggle.onchange = () => {
   localStorage.setItem('openmet-voice-enabled', els.voiceToggle.checked ? 'true' : 'false');
@@ -1094,6 +1206,7 @@ els.voiceToggle.onchange = () => {
     // Play AUDIO_INTRONOISE.ogg
     let drIntro = new Audio('SFX/dr/AUDIO_INTRONOISE.ogg');
     drIntro.play();
+    showDrQuote();
   }
 };
 const savedVoice = localStorage.getItem('openmet-voice-enabled');
