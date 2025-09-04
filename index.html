@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<audio id="flashbangSound" src="flashbang.mp3" preload="auto"></audio>
+<audio id="flashbangSound" src="SFX/flashbang.mp3" preload="auto"></audio>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenMet</title>
@@ -975,6 +975,13 @@ function scheduleNote(time){
 
     // --- Voice logic ---
     if (
+      drMode
+    ) {
+      // Play random DR SFX
+      let sfx = pickDrSfx();
+      let audio = new Audio('SFX/dr/' + sfx);
+      audio.play();
+    } else if (
       els.voiceToggle && els.voiceToggle.checked
     ) {
       let number = state.beatIndex + 1;
@@ -1057,8 +1064,37 @@ els.subdivision.onchange = () => {
 };
 
 // --- VOICE TOGGLE LOGIC ---
+let voiceToggleSpamTimestamps = [];
+let drMode = false;
+let drSfxList = [
+  {file: 'splat.mp3', weight: 90},
+  {file: 'snd.mp3', weight: 3.33},
+  {file: 'explosion.mp3', weight: 3.33},
+  {file: 'ominous.mp3', weight: 3.33}
+];
+function pickDrSfx() {
+  // Weighted random pick
+  let total = drSfxList.reduce((sum, s) => sum + s.weight, 0);
+  let r = Math.random() * total;
+  for (let s of drSfxList) {
+    if (r < s.weight) return s.file;
+    r -= s.weight;
+  }
+  return 'splat.mp3';
+}
 els.voiceToggle.onchange = () => {
   localStorage.setItem('openmet-voice-enabled', els.voiceToggle.checked ? 'true' : 'false');
+  // --- DR mode spam detection ---
+  const now = Date.now();
+  voiceToggleSpamTimestamps.push(now);
+  // Remove timestamps older than 5 seconds
+  voiceToggleSpamTimestamps = voiceToggleSpamTimestamps.filter(t => now - t < 5000);
+  if (!drMode && voiceToggleSpamTimestamps.length > 10) {
+    drMode = true;
+    // Play AUDIO_INTRONOISE.ogg
+    let drIntro = new Audio('SFX/dr/AUDIO_INTRONOISE.ogg');
+    drIntro.play();
+  }
 };
 const savedVoice = localStorage.getItem('openmet-voice-enabled');
 if (savedVoice !== null) els.voiceToggle.checked = savedVoice === 'true';

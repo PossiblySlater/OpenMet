@@ -27,6 +27,75 @@ h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center
 .light-mode .bar-labels{color:#64748b;}
 .light-mode .status{color:#f87171;}
 .light-mode select,.light-mode input[type="checkbox"]{background:#fff;color:#1e293b;border:1px solid #cbd5e1;}
+/* Flashbang overlay */
+#flashbangOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.5s;
+  filter: blur(0px);
+}
+#flashbangOverlay.active {
+  opacity: 1;
+  filter: blur(8px);
+  transition: opacity 0.1s, filter 0.1s;
+}
+/* Toggle switch styles (match metronome) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #2a3358;
+  transition: .4s;
+  border-radius: 24px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #8b9bb4;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: #7c9cff;
+}
+input:checked + .slider:before {
+  transform: translateX(26px);
+  background-color: #fff;
+}
+.light-mode .toggle-switch .slider {
+  background-color: #cbd5e1;
+}
+.light-mode .toggle-switch .slider:before {
+  background-color: #64748b;
+}
+.light-mode input:checked + .slider {
+  background-color: #3b82f6;
+}
+.light-mode input:checked + .slider:before {
+  background-color: #fff;
+}
 @media (max-width: 700px) {
 	.card {width:98vw;padding:8px;border-radius:0;}
 	.panel {padding:8px;margin-top:8px;border-radius:10px;}
@@ -40,6 +109,9 @@ h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center
 <body>
 	<!-- Metronome link top right -->
 	<a href="https://open-met.org" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Metronome</a>
+<!-- Flashbang sound and overlay -->
+<audio id="flashbangSound" src="../SFX/flashbang.mp3" preload="auto"></audio>
+<div id="flashbangOverlay"></div>
 <div class="card">
 	<h1>OpenMet Tuner</h1>
 	<div style="display:flex;gap:18px;flex-wrap:wrap">
@@ -59,7 +131,10 @@ h1{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center
 			<div style="margin-bottom:18px">
 				<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
 					<span>Light Mode</span>
-					<input type="checkbox" id="lightModeToggle">
+					<label class="toggle-switch">
+						<input type="checkbox" id="lightModeToggle">
+						<span class="slider"></span>
+					</label>
 				</label>
 			</div>
 			<div>
@@ -213,18 +288,37 @@ if (savedTranspose !== null) {
 }
 
 lightModeToggle.onchange = function() {
-	if (this.checked) {
-		document.body.classList.add('light-mode');
-		localStorage.setItem('openmet-tuner-lightmode', 'true');
-	} else {
-		document.body.classList.remove('light-mode');
-		localStorage.setItem('openmet-tuner-lightmode', 'false');
-	}
+  if (this.checked) {
+    // Flashbang effect
+    const overlay = document.getElementById('flashbangOverlay');
+    const sound = document.getElementById('flashbangSound');
+    overlay.classList.add('active');
+    overlay.style.opacity = '1';
+    overlay.style.filter = 'blur(8px)';
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play();
+    }
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 2s, filter 2s';
+      overlay.style.opacity = '0';
+      overlay.style.filter = 'blur(0px)';
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.style.transition = '';
+      }, 2000);
+    }, 1200);
+    document.body.classList.add('light-mode');
+    localStorage.setItem('openmet-tuner-lightmode', 'true');
+  } else {
+    document.body.classList.remove('light-mode');
+    localStorage.setItem('openmet-tuner-lightmode', 'false');
+  }
 };
 // Load saved light mode
 if (localStorage.getItem('openmet-tuner-lightmode') === 'true') {
-	lightModeToggle.checked = true;
-	document.body.classList.add('light-mode');
+  lightModeToggle.checked = true;
+  document.body.classList.add('light-mode');
 }
 
 startTuner();
