@@ -1335,6 +1335,10 @@ function applyTheme(theme) {
     }, 1200);
     document.body.classList.add('light-mode');
     localStorage.setItem('openmet-theme', theme);
+  } else if (theme === 'dark') {
+    setButtonIcons(true);
+    // Default dark mode (no extra class)
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'ultra-dark') {
     setButtonIcons(false);
     document.body.classList.add('ultra-dark');
