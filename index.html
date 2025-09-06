@@ -1,3 +1,11 @@
+<!--
+  OpenMet Metronome Web App
+  index.html
+  - Main HTML file for OpenMet metronome
+  - Includes all UI, styles, and scripts
+  - Author: Slater Feistner
+  - Copyright © 2025
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +14,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenMet</title>
 <style>
+/* Toggle and beat indicator styles for all themes */
+body.solarized-dark .toggle-switch .slider {
+  background-color: #586e75 !important;
+}
+body.solarized-dark .toggle-switch .slider:before {
+  background-color: #b58900 !important;
+}
+body.solarized-dark input:checked + .slider {
+  background-color: #b58900 !important;
+}
+body.solarized-dark input:checked + .slider:before {
+  background-color: #002b36 !important;
+}
+body.solarized-light .toggle-switch .slider {
+  background-color: #93a1a1 !important;
+}
+body.solarized-light .toggle-switch .slider:before {
+  background-color: #b58900 !important;
+}
+body.solarized-light input:checked + .slider {
+  background-color: #b58900 !important;
+}
+body.solarized-light input:checked + .slider:before {
+  background-color: #fdf6e3 !important;
+}
+body.monochrome .toggle-switch .slider {
+  background-color: #888 !important;
+}
+body.monochrome .toggle-switch .slider:before {
+  background-color: #eee !important;
+}
+body.monochrome input:checked + .slider {
+  background-color: #eee !important;
+}
+body.monochrome input:checked + .slider:before {
+  background-color: #222 !important;
+}
+body.pastel .toggle-switch .slider {
+  background-color: #c8b6ff !important;
+}
+body.pastel .toggle-switch .slider:before {
+  background-color: #f7f3fa !important;
+}
+body.pastel input:checked + .slider {
+  background-color: #6c5b7b !important;
+}
+body.pastel input:checked + .slider:before {
+  background-color: #fceff9 !important;
+}
+body.retro .toggle-switch .slider {
+  background-color: #f2e9e4 !important;
+}
+body.retro .toggle-switch .slider:before {
+  background-color: #22223b !important;
+}
+body.retro input:checked + .slider {
+  background-color: #9a8c98 !important;
+}
+body.retro input:checked + .slider:before {
+  background-color: #f2e9e4 !important;
+}
+body.ocean .toggle-switch .slider {
+  background-color: #3bb3c3 !important;
+}
+body.ocean .toggle-switch .slider:before {
+  background-color: #a7e9e6 !important;
+}
+body.ocean input:checked + .slider {
+  background-color: #176582 !important;
+}
+body.ocean input:checked + .slider:before {
+  background-color: #0e2f44 !important;
+}
+/* Theme dropdown styles for each mode */
+body.light-mode #themeSelect {
+  background: #fff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+body.high-contrast #themeSelect {
+  background: #000 !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+}
 /* Flashbang overlay */
 #flashbangOverlay {
   position: fixed;
@@ -87,8 +179,14 @@ tr.active-set{background:#1b2347}
 /* Settings tabs */
 .settings-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+  max-width: 320px;
+}
+.settings-tab {
+  flex: 1 1 45%;
+  margin-bottom: 8px;
 }
 .settings-tab {
   padding: 6px 16px;
@@ -370,6 +468,14 @@ html, body {
   <div id="flashbangOverlay"></div>
   <!-- Tuner link top right -->
   <a href="https://open-met.org/tuner/" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Tuner</a>
+  <div id="tennaVidContainer" style="position:fixed;top:10px;left:10px;z-index:500;display:none;pointer-events:none;">
+    <video id="tennaVid" src="other/tenna.mp4" width="180" height="120" style="object-fit:contain;filter:drop-shadow(0 0 16px #23284a);" loop muted playsinline></video>
+  </div>
+
+    <!-- Markiplier image popup -->
+    <div id="markiplierImgContainer" style="position:fixed;top:0;left:0;z-index:1000;display:none;pointer-events:auto;">
+      <img id="markiplierImg" src="other/markiplier/markiplier1.jpg" style="width:240px;height:240px;object-fit:contain;box-shadow:0 2px 12px #0006;cursor:pointer;" alt="Markiplier" />
+    </div>
   <div class="card">
     <h1>
       OpenMet
@@ -397,20 +503,283 @@ html, body {
       <button class="settings-tab active" id="appearanceTabBtn">Appearance</button>
       <button class="settings-tab" id="audioTabBtn">Audio</button>
       <button class="settings-tab" id="soundsTabBtn">Sounds</button>
+      <button class="settings-tab" id="otherTabBtn">Other</button>
     </div>
     
     <!-- Appearance Tab -->
     <div class="setting-group settings-tab-content" id="appearanceTab" style="display:block">
       <h3>Appearance</h3>
-      <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
-        <span>Light Mode</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="lightModeToggle">
-          <span class="slider"></span>
-        </label>
+      <label style="display:flex;flex-direction:column;gap:8px;margin:8px 0">
+        <span>Theme</span>
+        <select id="themeSelect" style="width:180px;padding:6px 10px;border-radius:8px;border:1px solid #2a3358;background:#0e1433;color:#fff">
+          <option value="dark">Dark Mode</option>
+          <option value="light">Light Mode</option>
+          <option value="high-contrast">High Contrast</option>
+          <option value="solarized-dark">Solarized Dark</option>
+          <option value="solarized-light">Solarized Light</option>
+          <option value="monochrome">Monochrome</option>
+          <option value="pastel">Pastel</option>
+          <option value="retro">Retro</option>
+          <option value="ocean">Ocean</option>
+        </select>
       </label>
     </div>
-    
+<style>
+/* High Contrast mode styles */
+body.high-contrast {
+  background: #000 !important;
+  color: #fff !important;
+}
+body.high-contrast .card {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast .panel {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast input, body.high-contrast select, body.high-contrast button {
+  background: #000 !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+}
+body.high-contrast th, body.high-contrast td {
+  border-bottom: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast tr.active-set {
+  background: #222 !important;
+}
+body.high-contrast #infoPanel, body.high-contrast #settingsPanel {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast #led {
+  background: #fff !important;
+}
+body.high-contrast .btn.ghost {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast button {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast .settings-tab {
+  background: #000 !important;
+  color: #fff !important;
+  border-bottom: 2px solid #fff !important;
+}
+body.high-contrast .settings-tab.active {
+  background: #222 !important;
+  color: #fff !important;
+  border-bottom: 2px solid #fff !important;
+}
+/* Solarized Dark Theme */
+body.solarized-dark {
+  background: #002b36 !important;
+  color: #839496 !important;
+}
+body.solarized-dark .card, body.solarized-dark .panel {
+  background: #073642 !important;
+  color: #839496 !important;
+  border: 1px solid #586e75 !important;
+}
+body.solarized-dark input, body.solarized-dark select, body.solarized-dark button {
+  background: #002b36 !important;
+  color: #839496 !important;
+  border: 1px solid #586e75 !important;
+}
+body.solarized-dark th, body.solarized-dark td {
+  border-bottom: 1px solid #586e75 !important;
+  color: #839496 !important;
+}
+body.solarized-dark .btn.ghost {
+  background: #073642 !important;
+  border: 1px solid #586e75 !important;
+  color: #839496 !important;
+}
+body.solarized-dark #led {
+  background: #b58900 !important;
+}
+
+/* Solarized Light Theme */
+body.solarized-light {
+  background: #fdf6e3 !important;
+  color: #657b83 !important;
+}
+body.solarized-light .card, body.solarized-light .panel {
+  background: #eee8d5 !important;
+  color: #657b83 !important;
+  border: 1px solid #93a1a1 !important;
+}
+body.solarized-light input, body.solarized-light select, body.solarized-light button {
+  background: #fdf6e3 !important;
+  color: #657b83 !important;
+  border: 1px solid #93a1a1 !important;
+}
+body.solarized-light th, body.solarized-light td {
+  border-bottom: 1px solid #93a1a1 !important;
+  color: #657b83 !important;
+}
+body.solarized-light .btn.ghost {
+  background: #eee8d5 !important;
+  border: 1px solid #93a1a1 !important;
+  color: #657b83 !important;
+}
+body.solarized-light #led {
+  background: #b58900 !important;
+}
+
+/* Monochrome Theme */
+body.monochrome {
+  background: #222 !important;
+  color: #eee !important;
+}
+body.monochrome .card, body.monochrome .panel {
+  background: #333 !important;
+  color: #eee !important;
+  border: 1px solid #888 !important;
+}
+body.monochrome input, body.monochrome select, body.monochrome button {
+  background: #222 !important;
+  color: #eee !important;
+  border: 1px solid #888 !important;
+}
+body.monochrome th, body.monochrome td {
+  border-bottom: 1px solid #888 !important;
+  color: #eee !important;
+}
+body.monochrome .btn.ghost {
+  background: #333 !important;
+  border: 1px solid #888 !important;
+  color: #eee !important;
+}
+body.monochrome #led {
+  background: #eee !important;
+}
+
+/* Pastel Theme */
+body.pastel {
+  background: #f7f3fa !important;
+  color: #6c5b7b !important;
+}
+body.pastel .card, body.pastel .panel {
+  background: #fceff9 !important;
+  color: #6c5b7b !important;
+  border: 1px solid #c8b6ff !important;
+}
+body.pastel input, body.pastel select, body.pastel button {
+  background: #f7f3fa !important;
+  color: #6c5b7b !important;
+  border: 1px solid #c8b6ff !important;
+}
+body.pastel th, body.pastel td {
+  border-bottom: 1px solid #c8b6ff !important;
+  color: #6c5b7b !important;
+}
+body.pastel .btn.ghost {
+  background: #fceff9 !important;
+  border: 1px solid #c8b6ff !important;
+  color: #6c5b7b !important;
+}
+body.pastel #led {
+  background: #c8b6ff !important;
+}
+
+/* Retro Theme */
+body.retro {
+  background: #22223b !important;
+  color: #f2e9e4 !important;
+}
+body.retro .card, body.retro .panel {
+  background: #4a4e69 !important;
+  color: #f2e9e4 !important;
+  border: 2px solid #f2e9e4 !important;
+}
+body.retro input, body.retro select, body.retro button {
+  background: #22223b !important;
+  color: #f2e9e4 !important;
+  border: 2px solid #f2e9e4 !important;
+}
+body.retro th, body.retro td {
+  border-bottom: 2px solid #f2e9e4 !important;
+  color: #f2e9e4 !important;
+}
+body.retro .btn.ghost {
+  background: #4a4e69 !important;
+  border: 2px solid #f2e9e4 !important;
+  color: #f2e9e4 !important;
+}
+body.retro #led {
+  background: #f2e9e4 !important;
+}
+
+/* Ocean Theme */
+body.ocean {
+  background: #0e2f44 !important;
+  color: #a7e9e6 !important;
+}
+body.ocean .card, body.ocean .panel {
+  background: #176582 !important;
+  color: #a7e9e6 !important;
+  border: 1px solid #3bb3c3 !important;
+}
+body.ocean input, body.ocean select, body.ocean button {
+  background: #0e2f44 !important;
+  color: #a7e9e6 !important;
+  border: 1px solid #3bb3c3 !important;
+}
+body.ocean th, body.ocean td {
+  border-bottom: 1px solid #3bb3c3 !important;
+  color: #a7e9e6 !important;
+}
+body.ocean .btn.ghost {
+  background: #176582 !important;
+  border: 1px solid #3bb3c3 !important;
+  color: #a7e9e6 !important;
+}
+body.ocean #led {
+  background: #3bb3c3 !important;
+}
+
+/* Settings panel background for all themes */
+body.solarized-dark #settingsPanel {
+  background: #073642 !important;
+  color: #839496 !important;
+  border: 1px solid #586e75 !important;
+}
+body.solarized-light #settingsPanel {
+  background: #eee8d5 !important;
+  color: #657b83 !important;
+  border: 1px solid #93a1a1 !important;
+}
+body.monochrome #settingsPanel {
+  background: #333 !important;
+  color: #eee !important;
+  border: 1px solid #888 !important;
+}
+body.pastel #settingsPanel {
+  background: #fceff9 !important;
+  color: #6c5b7b !important;
+  border: 1px solid #c8b6ff !important;
+}
+body.retro #settingsPanel {
+  background: #4a4e69 !important;
+  color: #f2e9e4 !important;
+  border: 2px solid #f2e9e4 !important;
+}
+body.ocean #settingsPanel {
+  background: #176582 !important;
+  color: #a7e9e6 !important;
+  border: 1px solid #3bb3c3 !important;
+}
+</style>
     <!-- Audio Tab -->
     <div class="settings-tab-content" id="audioTab" style="display:none">
       <div class="setting-group">
@@ -461,6 +830,32 @@ html, body {
           </label>
         </div>
       <div class="setting-group">
+      </div>
+    </div>
+
+    <!-- Other Tab -->
+    <div class="settings-tab-content" id="otherTab" style="display:none">
+      <div class="setting-group">
+        <h3>Other</h3>
+        <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+          <span>Left-Handed Mode</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="leftHandedToggle">
+            <span class="slider"></span>
+          </label>
+        </label>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var leftHandedToggle = document.getElementById('leftHandedToggle');
+          leftHandedToggle.addEventListener('change', function() {
+            if (leftHandedToggle.checked) {
+              document.body.style.transform = 'scaleX(-1)';
+            } else {
+              document.body.style.transform = '';
+            }
+          });
+        });
+        </script>
       </div>
     </div>
   </div>
@@ -670,16 +1065,65 @@ I Just Want To Make Everyone Smile And If I Become An Evil Villain To Accomplish
 Go play minecrap or something!</textarea>
 
 <script>
-// --- ELEMENT REFERENCES ---
-// All main UI elements are collected here for easy access
+// UI ELEMENT REFERENCES
+// Collects all main UI elements for easy access throughout the script.
 document.addEventListener('DOMContentLoaded', () => {
-  // Hide voices option on mobile (but keep in DOM for JS references)
+  // This block runs after the DOM is loaded and sets up mobile UI, Markiplier popup, and event listeners.
+  // Hide voice options on mobile devices for cleaner UI (still accessible in DOM for JS logic)
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   if (isMobile) {
     const voicesGroup = document.getElementById('voicesGroup');
     if (voicesGroup) voicesGroup.style.display = 'none';
   }
+
+  // Markiplier image popup logic
+  // Detects rapid clicks in the top-left corner and displays a cycling Markiplier image permanently until reload.
+  // Tracks timestamps of clicks in the top-left corner for spam detection
+  let topLeftSpamTimestamps = [];
+  // Markiplier image container and image element
+  const markiplierImgContainer = document.getElementById('markiplierImgContainer');
+  const markiplierImg = document.getElementById('markiplierImg');
+  // Array of Markiplier image paths (jpg/gif)
+  const markiplierImages = [
+  'other/markiplier/markiplier1.jpg',
+  'other/markiplier/markiplier2.gif',
+  'other/markiplier/markiplier4.gif',
+  'other/markiplier/markiplier5.gif'
+  ];
+  // Current Markiplier image index and activation flag
+  let markiplierIndex = 0;
+  let markiplierActive = false;
+
+  // Listen for mouse clicks in the top-left corner (within 40px of top/left)
+  // Listen for mouse clicks in the top-left corner (within 40px of top/left)
+  // If spammed rapidly, show Markiplier image permanently
+  document.addEventListener('mousedown', function(e) {
+    if (!markiplierActive && e.clientX < 40 && e.clientY < 40) {
+      const now = Date.now();
+      topLeftSpamTimestamps.push(now);
+      // Only keep timestamps from the last 2 seconds
+      topLeftSpamTimestamps = topLeftSpamTimestamps.filter(t => now - t < 2000);
+      if (topLeftSpamTimestamps.length > 5) {
+        // Show Markiplier image and keep it visible until reload
+        markiplierImgContainer.style.display = 'block';
+        markiplierImg.src = markiplierImages[markiplierIndex];
+        markiplierImgContainer.style.opacity = '1';
+        markiplierActive = true;
+      }
+    }
+  });
+
+  // Cycle through Markiplier images on click
+  // Clicking the Markiplier image cycles through the available images
+  if (markiplierImg) {
+    markiplierImg.onclick = function(e) {
+      markiplierIndex = (markiplierIndex + 1) % markiplierImages.length;
+      markiplierImg.src = markiplierImages[markiplierIndex];
+    };
+  }
+  // Image remains visible; no hide-on-click-outside logic
 });
+// Main UI element references for easy access throughout the script
 const els = {
   led: document.getElementById("led"),
   beatStrip: document.getElementById("beatStrip"),
@@ -715,10 +1159,12 @@ const els = {
   voiceSlater: document.getElementById("voiceSlater") || {},
 };
 
-// --- APPLICATION STATE ---
+// APPLICATION STATE
+// Stores all runtime state for metronome, sets, and audio.
 
-// --- COUNT-OFF OVERLAY LOGIC ---
-// All runtime state is stored here
+// COUNT-OFF OVERLAY LOGIC
+// Used for advanced metronome features and overlays.
+// Global state object for metronome, sets, and audio
 let state = {
   sets: [],
   currentSetIndex: 0,
@@ -744,15 +1190,98 @@ let state = {
 
 
 
-// --- SETTINGS PANEL LOGIC ---
+// SETTINGS PANEL LOGIC
+// Show/hide settings panel
 els.settingsIcon.onclick = ()=> els.settingsPanel.style.display="block";
 els.closeSettings.onclick = ()=> els.settingsPanel.style.display="none";
 
-// --- SETTINGS FUNCTIONALITY ---
+// SETTINGS FUNCTIONALITY
 // Light mode toggle
-els.lightModeToggle.onchange = () => {
-  if (els.lightModeToggle.checked) {
-    // Flashbang effect
+// Theme selection logic
+const themeSelect = document.getElementById('themeSelect');
+function applyTheme(theme) {
+  // Update theme dropdown style to match theme
+  if (themeSelect) {
+    themeSelect.style.background = '';
+    themeSelect.style.color = '';
+    themeSelect.style.border = '';
+    switch (theme) {
+      case 'light':
+        themeSelect.style.background = '#fff';
+        themeSelect.style.color = '#1e293b';
+        themeSelect.style.border = '1px solid #cbd5e1';
+        break;
+      case 'high-contrast':
+        themeSelect.style.background = '#000';
+        themeSelect.style.color = '#fff';
+        themeSelect.style.border = '2px solid #fff';
+        break;
+      case 'solarized-dark':
+        themeSelect.style.background = '#002b36';
+        themeSelect.style.color = '#839496';
+        themeSelect.style.border = '1px solid #586e75';
+        break;
+      case 'solarized-light':
+        themeSelect.style.background = '#fdf6e3';
+        themeSelect.style.color = '#657b83';
+        themeSelect.style.border = '1px solid #93a1a1';
+        break;
+      case 'monochrome':
+        themeSelect.style.background = '#222';
+        themeSelect.style.color = '#eee';
+        themeSelect.style.border = '1px solid #888';
+        break;
+      case 'pastel':
+        themeSelect.style.background = '#f7f3fa';
+        themeSelect.style.color = '#6c5b7b';
+        themeSelect.style.border = '1px solid #c8b6ff';
+        break;
+      case 'retro':
+        themeSelect.style.background = '#22223b';
+        themeSelect.style.color = '#f2e9e4';
+        themeSelect.style.border = '2px solid #f2e9e4';
+        break;
+      case 'ocean':
+        themeSelect.style.background = '#0e2f44';
+        themeSelect.style.color = '#a7e9e6';
+        themeSelect.style.border = '1px solid #3bb3c3';
+        break;
+      case 'glass':
+        themeSelect.style.background = 'rgba(255,255,255,0.8)';
+        themeSelect.style.color = '#222';
+        themeSelect.style.border = '1px solid #b4c5e4';
+        break;
+      default:
+        themeSelect.style.background = '#0e1433';
+        themeSelect.style.color = '#fff';
+        themeSelect.style.border = '1px solid #2a3358';
+    }
+  }
+  // Update theme dropdown style to match theme
+  if (themeSelect) {
+    themeSelect.style.background = '';
+    themeSelect.style.color = '';
+    themeSelect.style.border = '';
+    if (theme === 'light') {
+      themeSelect.style.background = '#fff';
+      themeSelect.style.color = '#1e293b';
+      themeSelect.style.border = '1px solid #cbd5e1';
+    } else if (theme === 'high-contrast') {
+      themeSelect.style.background = '#000';
+      themeSelect.style.color = '#fff';
+      themeSelect.style.border = '2px solid #fff';
+    } else {
+      themeSelect.style.background = '#0e1433';
+      themeSelect.style.color = '#fff';
+      themeSelect.style.border = '1px solid #2a3358';
+    }
+  }
+  // Remove all theme classes
+  document.body.classList.remove(
+    'light-mode', 'high-contrast', 'solarized-dark', 'solarized-light', 'monochrome', 'pastel', 'retro', 'ocean'
+  );
+  if (theme === 'light') {
+    // Play flashbang effect for light mode
     const overlay = document.getElementById('flashbangOverlay');
     const sound = document.getElementById('flashbangSound');
     overlay.classList.add('active');
@@ -771,17 +1300,38 @@ els.lightModeToggle.onchange = () => {
         overlay.style.transition = '';
       }, 2000);
     }, 1200);
-    document.body.classList.add("light-mode");
-    localStorage.setItem('openmet-light-mode', 'true');
-  } else {
-    document.body.classList.remove("light-mode");
-    localStorage.setItem('openmet-light-mode', 'false');
+    document.body.classList.add('light-mode');
+  } else if (theme === 'high-contrast') {
+    document.body.classList.add('high-contrast');
+  } else if (theme === 'solarized-dark') {
+    document.body.classList.add('solarized-dark');
+  } else if (theme === 'solarized-light') {
+    document.body.classList.add('solarized-light');
+  } else if (theme === 'monochrome') {
+    document.body.classList.add('monochrome');
+  } else if (theme === 'pastel') {
+    document.body.classList.add('pastel');
+  } else if (theme === 'retro') {
+    document.body.classList.add('retro');
+  } else if (theme === 'ocean') {
+    document.body.classList.add('ocean');
   }
-  // Re-render beat strip to update colors
+  // Default is dark mode (no extra class)
+  localStorage.setItem('openmet-theme', theme);
   renderBeatStrip();
-};
+}
+if (themeSelect) {
+  themeSelect.onchange = function() {
+    applyTheme(themeSelect.value);
+  };
+}
+// On page load, apply saved theme
+const savedTheme = localStorage.getItem('openmet-theme') || 'dark';
+if (themeSelect) themeSelect.value = savedTheme;
+applyTheme(savedTheme);
 
 // Volume sliders
+// Update main beat volume and save to localStorage
 els.mainVolume.oninput = () => {
   const value = els.mainVolume.value;
   els.mainVolumeValue.textContent = value + "%";
@@ -789,6 +1339,7 @@ els.mainVolume.oninput = () => {
   localStorage.setItem('openmet-main-volume', value);
 };
 
+// Update subdivision volume and save to localStorage
 els.subVolume.oninput = () => {
   const value = els.subVolume.value;
   els.subVolumeValue.textContent = value + "%";
@@ -796,18 +1347,23 @@ els.subVolume.oninput = () => {
   localStorage.setItem('openmet-sub-volume', value);
 };
 
-// --- SETTINGS TABS LOGIC ---
+// SETTINGS TABS LOGIC
+// Tab button references for settings panel
 const tabBtns = {
   appearance: document.getElementById("appearanceTabBtn"),
   audio: document.getElementById("audioTabBtn"),
-  sounds: document.getElementById("soundsTabBtn")
+  sounds: document.getElementById("soundsTabBtn"),
+  other: document.getElementById("otherTabBtn")
 };
+// Tab content references for settings panel
 const tabContents = {
   appearance: document.getElementById("appearanceTab"),
   audio: document.getElementById("audioTab"),
-  sounds: document.getElementById("soundsTab")
+  sounds: document.getElementById("soundsTab"),
+  other: document.getElementById("otherTab")
 };
 // Show the selected tab and hide others
+// Show the selected settings tab and hide others
 function showTab(tab) {
   for (const key in tabBtns) {
     tabBtns[key].classList.toggle("active", key === tab);
@@ -817,9 +1373,11 @@ function showTab(tab) {
 tabBtns.appearance.onclick = () => showTab("appearance");
 tabBtns.audio.onclick = () => showTab("audio");
 tabBtns.sounds.onclick = () => showTab("sounds");
+tabBtns.other.onclick = () => showTab("other");
 
-// --- SETS MANAGEMENT ---
+// SETS MANAGEMENT
 // Render the sets table
+// Render the sets table in the UI
 function renderSets(){
   els.setTable.innerHTML = "";
   state.sets.forEach((s,i)=>{
@@ -846,6 +1404,7 @@ function renderSets(){
   });
 }
 // Remove a set from the list
+// Remove a set from the list and update indices
 function removeSet(i){ 
   state.sets.splice(i,1); 
   
@@ -861,6 +1420,7 @@ function removeSet(i){
 }
 
 // Set the start set index
+// Set the start set index for playback range
 function setStartSet(index) {
   state.startSetIndex = index;
   // If start is after end, move end to start
@@ -871,6 +1431,7 @@ function setStartSet(index) {
 }
 
 // Set the end set index
+// Set the end set index for playback range
 function setEndSet(index) {
   state.endSetIndex = index;
   // If end is before start, move start to end
@@ -881,6 +1442,7 @@ function setEndSet(index) {
 }
 
 // Add a new set to the list
+// Add a new set to the list from input fields
 els.addSetBtn.onclick = ()=>{
   const name = els.setName.value || `Set ${state.sets.length+1}`;
   state.sets.push({
@@ -904,8 +1466,9 @@ els.addSetBtn.onclick = ()=>{
   renderSets();
 };
 
-// --- EXPORT / IMPORT SETS ---
+// EXPORT / IMPORT SETS
 // Export sets as .openmet file (JSON with .openmet extension, group name as filename)
+// Export sets to a .openmet file (JSON)
 els.exportBtn.onclick = ()=>{
   const data = {
     groupName: els.groupName.value || "Untitled Group",
@@ -923,7 +1486,9 @@ els.exportBtn.onclick = ()=>{
   URL.revokeObjectURL(url);
 };
 // Import sets from .openmet or .json file
+// Trigger file input for importing sets
 els.importBtn.onclick = ()=> els.importFile.click();
+// Import sets from a .openmet or .json file
 els.importFile.onchange = e=>{
   const file = e.target.files[0];
   if(!file) return;
@@ -947,12 +1512,14 @@ els.importFile.onchange = e=>{
   reader.readAsText(file);
 };
 
-// --- AUDIO LOGIC ---
+// AUDIO LOGIC
 // Initialize audio context
+// Initialize the Web Audio context for metronome sounds
 function initAudio(){
   if(!state.audioCtx){ state.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
 }
 // Play a metronome click sound
+// Play a metronome click sound (accented or subdivision)
 function clickSound(time, accented, isSubdivision = false){
   const ctx = state.audioCtx; if(!ctx) return;
   const osc = ctx.createOscillator(); const gain = ctx.createGain();
@@ -980,8 +1547,9 @@ function clickSound(time, accented, isSubdivision = false){
 // Calculate interval between beats (in seconds)
 function nextIntervalSeconds(){ return (60/state.bpm)*(4/state.beatUnit); }
 
-// --- SETS MANAGEMENT LOGIC ---
+// SETS MANAGEMENT LOGIC
 // Load a set's parameters into the metronome
+// Load a set's parameters into the metronome and update UI
 function loadSet(setIndex) {
   if (setIndex >= 0 && setIndex < state.sets.length) {
     const set = state.sets[setIndex];
@@ -1008,6 +1576,7 @@ function loadSet(setIndex) {
 }
 
 // Advance to the next set in the sequence
+// Advance to the next set in the sequence, looping if enabled
 function advanceToNextSet() {
   if (state.sets.length > 0 && els.useSetsToggle.checked) {
     const nextIndex = state.currentSetIndex + 1;
@@ -1030,8 +1599,9 @@ function advanceToNextSet() {
   }
 }
 
-// --- SCHEDULER LOGIC ---
+// SCHEDULER LOGIC
 // Schedule a main beat note
+// Schedule a main beat note, play sound, and handle voice/DR logic
 function scheduleNote(time){
   // Check if this beat should play based on its state
   const beatState = state.beatStates[state.beatIndex];
@@ -1048,7 +1618,18 @@ function scheduleNote(time){
       let sfx = pickDrSfx();
       let audio = new Audio('SFX/dr/' + sfx);
       audio.play();
-      // No clickSound, no voice
+      // Show and control tenna.mp4 playback speed
+      const tennaVidContainer = document.getElementById('tennaVidContainer');
+      const tennaVid = document.getElementById('tennaVid');
+      if (tennaVidContainer && tennaVid) {
+        tennaVidContainer.style.display = 'block';
+        tennaVidContainer.style.opacity = '1';
+        // Calculate speed ratio
+        const baseBpm = 86.5;
+        const speedRatio = state.bpm / baseBpm;
+        tennaVid.playbackRate = speedRatio;
+        if (tennaVid.paused) tennaVid.play();
+      }
     } else if (
       els.voiceToggle && els.voiceToggle.checked
     ) {
@@ -1077,7 +1658,13 @@ function scheduleNote(time){
       clickSound(time, accented);
     }
   }
-  
+  // Hide tenna.mp4 if not in drMode
+  if (!drMode) {
+    const tennaVidContainer = document.getElementById('tennaVidContainer');
+    const tennaVid = document.getElementById('tennaVid');
+    if (tennaVidContainer) tennaVidContainer.style.display = 'none';
+    if (tennaVid && !tennaVid.paused) tennaVid.pause();
+  }
   // Check if we're completing a measure
   if (state.beatIndex === state.beatsPerBar - 1) {
     state.measureIndex++;
@@ -1086,7 +1673,6 @@ function scheduleNote(time){
       state.measureIndex = 0;
     }
   }
-  
   state.beatIndex = (state.beatIndex+1)%state.beatsPerBar;
   scheduleSubdivision(time);
 }
@@ -1103,6 +1689,7 @@ function scheduleSubdivision(time) {
   }
 }
 // Main scheduler loop: schedules notes ahead of time
+// Main scheduler loop: schedules notes ahead of time for smooth playback
 function scheduler(){
   if(!state.isRunning) return;
   const ctx = state.audioCtx;
@@ -1113,35 +1700,44 @@ function scheduler(){
   state.schedulerId = setTimeout(scheduler,state.lookahead);
 }
 
-// --- CONTROL UPDATES ---
+// CONTROL UPDATES
 // Update state when controls change
+// Update BPM when input changes
 els.setBpm.onchange = () => {
   state.bpm = Number(els.setBpm.value);
 };
 
+// Update beats per bar (top number) and re-render beat strip
 els.setTop.onchange = () => {
   state.beatsPerBar = Number(els.setTop.value);
   renderBeatStrip();
 };
 
+// Update beat unit (bottom number)
 els.setBottom.onchange = () => {
   state.beatUnit = Number(els.setBottom.value);
 };
 
+// Update subdivision value
 els.subdivision.onchange = () => {
   state.subdivision = Number(els.subdivision.value);
 };
 
-// --- VOICE TOGGLE LOGIC ---
+// VOICE TOGGLE LOGIC
+// Tracks timestamps for voice toggle spam detection (DR mode)
 let voiceToggleSpamTimestamps = [];
+// DR mode flag (special mode triggered by spamming voice toggle)
 let drMode = false;
+// Weighted list of DR sound effects
 let drSfxList = [
   {file: 'splat.mp3', weight: 90},
   {file: 'snd.mp3', weight: 3.33},
   {file: 'explosion.mp3', weight: 3.33},
   {file: 'ominous.mp3', weight: 3.33}
 ];
+// Array of DR quotes (loaded from textarea)
 let drQuotes = null;
+// Pick a DR sound effect based on weighted random selection
 function pickDrSfx() {
   // Weighted random pick
   let total = drSfxList.reduce((sum, s) => sum + s.weight, 0);
@@ -1152,6 +1748,7 @@ function pickDrSfx() {
   }
   return 'splat.mp3';
 }
+// Display a random DR quote in the UI
 function showDrQuote() {
   const el = document.getElementById('drQuote');
   if (!drQuotes) {
@@ -1164,7 +1761,7 @@ function showDrQuote() {
   el.style.display = 'block';
 }
 
-// Make the quote clickable to pick a new one
+// Make the DR quote clickable to pick a new one and play sound
 document.addEventListener('DOMContentLoaded', function() {
   const drQuoteEl = document.getElementById('drQuote');
   if (drQuoteEl) {
@@ -1190,10 +1787,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+// Hide the DR quote display
 function hideDrQuote() {
   const el = document.getElementById('drQuote');
   el.style.display = 'none';
 }
+// Handle voice toggle changes and DR mode activation
 els.voiceToggle.onchange = () => {
   localStorage.setItem('openmet-voice-enabled', els.voiceToggle.checked ? 'true' : 'false');
   // --- DR mode spam detection ---
@@ -1209,25 +1808,30 @@ els.voiceToggle.onchange = () => {
     showDrQuote();
   }
 };
+// Restore saved voice toggle state from localStorage
 const savedVoice = localStorage.getItem('openmet-voice-enabled');
 if (savedVoice !== null) els.voiceToggle.checked = savedVoice === 'true';
 
-// --- Voice radio logic ---
+// Voice radio button logic
+// Save selected voice (Brad) to localStorage
 els.voiceBrad.onchange = () => {
   if (els.voiceBrad.checked) {
     localStorage.setItem('openmet-voice-choice', 'brad');
   }
 };
+// Save selected voice (Grandpa) to localStorage
 els.voiceGrandpa.onchange = () => {
   if (els.voiceGrandpa.checked) {
     localStorage.setItem('openmet-voice-choice', 'grandpa');
   }
 };
+// Save selected voice (Slater) to localStorage
 els.voiceSlater.onchange = () => {
   if (els.voiceSlater.checked) {
     localStorage.setItem('openmet-voice-choice', 'slater');
   }
 };
+// Restore saved voice choice from localStorage
 const savedVoiceChoice = localStorage.getItem('openmet-voice-choice');
 if (savedVoiceChoice === 'grandpa') {
   els.voiceGrandpa.checked = true;
@@ -1244,6 +1848,7 @@ if (savedVoiceChoice === 'grandpa') {
   els.voiceSlater.checked = false;
 }
 
+// Helper to get the selected voice prefix for audio element IDs
 function getSelectedVoicePrefix() {
   if (els.voiceBrad && els.voiceBrad.checked) return "bradVoice";
   if (els.voiceGrandpa && els.voiceGrandpa.checked) return "grandpaVoice";
@@ -1251,11 +1856,12 @@ function getSelectedVoicePrefix() {
   return "bradVoice"; // fallback
 }
 
-// In playCountoff and scheduleNote, use:
+// Helper for voice playback: use voicePrefix + number for audio element ID
+// Used for voice playback: voicePrefix + number
 let voicePrefix = getSelectedVoicePrefix();
-// ...then use voicePrefix + number for the audio element ID...
 
-// --- START/STOP LOGIC ---
+// START/STOP LOGIC
+// Start the metronome
 // Start the metronome
 function start(){
   initAudio();
@@ -1263,10 +1869,11 @@ function start(){
 }
 
 
+// Actually start the metronome and initialize set
 function actuallyStartMet() {
   state.isRunning = true;
   state.measureIndex = 0;
-  state.beatIndex = 0; // Reset to beat 1
+  state.beatIndex = 0; // Reset to first beat
 
   // Initialize first set if using sets
   if (els.useSetsToggle.checked && state.sets.length > 0) {
@@ -1274,24 +1881,25 @@ function actuallyStartMet() {
     renderSets(); // Update table highlighting
   }
 
-  // Always start metronome immediately
+  // Start metronome immediately
   state.nextNoteTime = state.audioCtx.currentTime + 0.05;
   scheduler();
 
-  // Update button appearance
+  // Update start/stop button appearance
   els.toggleBtn.textContent = "⏹";
   els.toggleBtn.className = "btn danger";
 }
 // Stop the metronome
+// Stop the metronome and update UI
 function stop(){
   state.isRunning=false;
   clearTimeout(state.schedulerId); state.schedulerId=null;
   
-  // Update button appearance
+  // Update start/stop button appearance
   els.toggleBtn.textContent = "▶";
   els.toggleBtn.className = "btn primary";
   
-  // Remove highlighting when stopped
+  // Remove set highlighting when stopped
   if (els.useSetsToggle.checked) {
     renderSets();
   }
@@ -1312,9 +1920,14 @@ els.toggleBtn.onclick = toggleMetronome;
 // Flash the LED for each beat
 function flash(accented){
   const isLightMode = document.body.classList.contains("light-mode");
-  const defaultColor = isLightMode ? "#e2e8f0" : "#1b2347";
-  
-  els.led.style.background=accented?"#7c9cff":"#34d399";
+  const isHighContrast = document.body.classList.contains("high-contrast");
+  let defaultColor = isLightMode ? "#e2e8f0" : "#1b2347";
+  let flashColor = accented ? "#7c9cff" : "#34d399";
+  if (isHighContrast) {
+    defaultColor = "#fff";
+    flashColor = accented ? "#fff" : "#ff0";
+  }
+  els.led.style.background = flashColor;
   setTimeout(()=>els.led.style.background=defaultColor,80);
   highlightBeat(state.beatIndex);
 }
@@ -1331,6 +1944,7 @@ function renderBeatStrip(){
     }
   }
   
+  const theme = document.body.className;
   for(let i=0;i<state.beatsPerBar;i++){
     const div=document.createElement("div");
     div.style.flex="1"; 
@@ -1338,27 +1952,65 @@ function renderBeatStrip(){
     div.style.borderRadius="6px";
     div.style.cursor="pointer";
     div.style.transition="background-color 0.2s";
-    
-    // Set background based on beat state
-    const isLightMode = document.body.classList.contains("light-mode");
-    switch(state.beatStates[i]) {
-      case 0: // off
-        div.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
-        div.style.opacity="0.3";
-        break;
-      case 1: // normal
-        div.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
-        div.style.opacity="1";
-        break;
-      case 2: // accented
-        div.style.background="#3b82f6";
-        div.style.opacity="1";
-        break;
+    // Set background based on beat state and theme
+    switch(theme) {
+      case "high-contrast":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#222"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#fff200"; div.style.opacity="1"; break;
+          case 2: div.style.background="#fff"; div.style.opacity="1"; break;
+        } break;
+      case "solarized-dark":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#073642"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#586e75"; div.style.opacity="1"; break;
+          case 2: div.style.background="#b58900"; div.style.opacity="1"; break;
+        } break;
+      case "solarized-light":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#eee8d5"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#93a1a1"; div.style.opacity="1"; break;
+          case 2: div.style.background="#b58900"; div.style.opacity="1"; break;
+        } break;
+      case "monochrome":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#333"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#888"; div.style.opacity="1"; break;
+          case 2: div.style.background="#eee"; div.style.opacity="1"; break;
+        } break;
+      case "pastel":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#fceff9"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#c8b6ff"; div.style.opacity="1"; break;
+          case 2: div.style.background="#6c5b7b"; div.style.opacity="1"; break;
+        } break;
+      case "retro":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#4a4e69"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#9a8c98"; div.style.opacity="1"; break;
+          case 2: div.style.background="#f2e9e4"; div.style.opacity="1"; break;
+        } break;
+      case "ocean":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#176582"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#3bb3c3"; div.style.opacity="1"; break;
+          case 2: div.style.background="#a7e9e6"; div.style.opacity="1"; break;
+        } break;
+      case "light-mode":
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#e2e8f0"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#e2e8f0"; div.style.opacity="1"; break;
+          case 2: div.style.background="#3b82f6"; div.style.opacity="1"; break;
+        } break;
+      default:
+        switch(state.beatStates[i]) {
+          case 0: div.style.background="#1a2145"; div.style.opacity="0.3"; break;
+          case 1: div.style.background="#1a2145"; div.style.opacity="1"; break;
+          case 2: div.style.background="#3b82f6"; div.style.opacity="1"; break;
+        } break;
     }
-    
     // Add click handler to cycle beat state
     div.onclick = () => cycleBeatState(i);
-    
     els.beatStrip.appendChild(div);
   }
 }
@@ -1443,20 +2095,62 @@ function cycleBeatState(beatIndex) {
   // Update the visual
   const beatElement = els.beatStrip.children[beatIndex];
   if (beatElement) {
-    const isLightMode = document.body.classList.contains("light-mode");
-    switch(state.beatStates[beatIndex]) {
-      case 0: // off
-        beatElement.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
-        beatElement.style.opacity="0.3";
-        break;
-      case 1: // normal
-        beatElement.style.background = isLightMode ? "#e2e8f0" : "#1a2145";
-        beatElement.style.opacity="1";
-        break;
-      case 2: // accented
-        beatElement.style.background="#3b82f6";
-        beatElement.style.opacity="1";
-        break;
+    const theme = document.body.className;
+    switch(theme) {
+      case "high-contrast":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#222"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#fff200"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#fff"; beatElement.style.opacity="1"; break;
+        } break;
+      case "solarized-dark":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#073642"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#586e75"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#b58900"; beatElement.style.opacity="1"; break;
+        } break;
+      case "solarized-light":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#eee8d5"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#93a1a1"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#b58900"; beatElement.style.opacity="1"; break;
+        } break;
+      case "monochrome":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#333"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#888"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#eee"; beatElement.style.opacity="1"; break;
+        } break;
+      case "pastel":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#fceff9"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#c8b6ff"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#6c5b7b"; beatElement.style.opacity="1"; break;
+        } break;
+      case "retro":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#4a4e69"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#9a8c98"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#f2e9e4"; beatElement.style.opacity="1"; break;
+        } break;
+      case "ocean":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#176582"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#3bb3c3"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#a7e9e6"; beatElement.style.opacity="1"; break;
+        } break;
+      case "light-mode":
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#e2e8f0"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#e2e8f0"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#3b82f6"; beatElement.style.opacity="1"; break;
+        } break;
+      default:
+        switch(state.beatStates[beatIndex]) {
+          case 0: beatElement.style.background="#1a2145"; beatElement.style.opacity="0.3"; break;
+          case 1: beatElement.style.background="#1a2145"; beatElement.style.opacity="1"; break;
+          case 2: beatElement.style.background="#3b82f6"; beatElement.style.opacity="1"; break;
+        } break;
     }
   }
 }
