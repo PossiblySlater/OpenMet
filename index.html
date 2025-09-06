@@ -10,10 +10,34 @@
 <html lang="en">
 <head>
 <audio id="flashbangSound" src="SFX/flashbang.mp3" preload="auto"></audio>
+<audio id="powerdownSound" src="SFX/powerdown.mp3" preload="auto"></audio>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenMet</title>
 <style>
+body.ultra-dark .toggle-switch,
+body.ultra-dark .slider,
+body.ultra-dark input[type="checkbox"] {
+  display: none !important;
+}
+/* Ultra-Dark Theme: everything black */
+body.ultra-dark, body.ultra-dark * {
+  background: #000 !important;
+  color: #000 !important;
+  border-color: #000 !important;
+  box-shadow: none !important;
+}
+body.ultra-dark #led {
+  background: #000 !important;
+}
+body.ultra-dark .slider {
+  background: #000 !important;
+}
+body.ultra-dark .settings-tab, body.ultra-dark .settings-tab.active {
+  background: #000 !important;
+  color: #000 !important;
+  border-bottom: 2px solid #000 !important;
+}
 /* Toggle and beat indicator styles for all themes */
 body.solarized-dark .toggle-switch .slider {
   background-color: #586e75 !important;
@@ -521,6 +545,7 @@ html, body {
           <option value="pastel">Pastel</option>
           <option value="retro">Retro</option>
           <option value="ocean">Ocean</option>
+          <option value="ultra-dark">Ultra-Dark</option>
         </select>
       </label>
     </div>
@@ -863,7 +888,7 @@ body.ocean #settingsPanel {
   <!-- Metronome visuals: LED and beat strip -->
   <div class="panel">
     <div style="display:flex;gap:20px;align-items:center">
-      <div id="led" style="width:60px;height:60px;border-radius:50%;background:#1b2347"></div>
+  <div id="led" style="width:60px;height:60px;border-radius:50%"></div>
       <div id="beatStrip" style="display:flex;gap:6px;flex:1"></div>
     </div>
   </div>
@@ -1200,6 +1225,13 @@ els.closeSettings.onclick = ()=> els.settingsPanel.style.display="none";
 // Theme selection logic
 const themeSelect = document.getElementById('themeSelect');
 function applyTheme(theme) {
+  // Helper to set button icons
+  function setButtonIcons(show) {
+    els.toggleBtn.textContent = show ? (state.isRunning ? "⏹" : "▶") : "";
+    els.exportBtn.textContent = show ? "📤" : "";
+    els.importBtn.textContent = show ? "📥" : "";
+    els.addSetBtn.textContent = show ? "➕" : "";
+  }
   // Update theme dropdown style to match theme
   if (themeSelect) {
     themeSelect.style.background = '';
@@ -1246,10 +1278,10 @@ function applyTheme(theme) {
         themeSelect.style.color = '#a7e9e6';
         themeSelect.style.border = '1px solid #3bb3c3';
         break;
-      case 'glass':
-        themeSelect.style.background = 'rgba(255,255,255,0.8)';
-        themeSelect.style.color = '#222';
-        themeSelect.style.border = '1px solid #b4c5e4';
+      case 'ultra-dark':
+        themeSelect.style.background = '#000';
+        themeSelect.style.color = '#000';
+        themeSelect.style.border = '1px solid #000';
         break;
       default:
         themeSelect.style.background = '#0e1433';
@@ -1278,9 +1310,10 @@ function applyTheme(theme) {
   }
   // Remove all theme classes
   document.body.classList.remove(
-    'light-mode', 'high-contrast', 'solarized-dark', 'solarized-light', 'monochrome', 'pastel', 'retro', 'ocean'
+    'light-mode', 'high-contrast', 'solarized-dark', 'solarized-light', 'monochrome', 'pastel', 'retro', 'ocean', 'ultra-dark'
   );
   if (theme === 'light') {
+    setButtonIcons(true);
     // Play flashbang effect for light mode
     const overlay = document.getElementById('flashbangOverlay');
     const sound = document.getElementById('flashbangSound');
@@ -1301,23 +1334,69 @@ function applyTheme(theme) {
       }, 2000);
     }, 1200);
     document.body.classList.add('light-mode');
+    localStorage.setItem('openmet-theme', theme);
+  } else if (theme === 'ultra-dark') {
+    setButtonIcons(false);
+    document.body.classList.add('ultra-dark');
+    // Play powerdown.mp3
+    const powerdown = document.getElementById('powerdownSound');
+    if (powerdown) {
+      powerdown.currentTime = 0;
+      powerdown.play();
+    }
+    // Stop the metronome
+    if (state.isRunning && typeof stop === 'function') {
+      stop();
+    }
+    // Do NOT save theme locally
   } else if (theme === 'high-contrast') {
+    setButtonIcons(true);
     document.body.classList.add('high-contrast');
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'solarized-dark') {
+    setButtonIcons(true);
     document.body.classList.add('solarized-dark');
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'solarized-light') {
+    setButtonIcons(true);
+    // Play flashbang effect for solarized light mode
+    const overlay = document.getElementById('flashbangOverlay');
+    const sound = document.getElementById('flashbangSound');
+    overlay.classList.add('active');
+    overlay.style.opacity = '1';
+    overlay.style.filter = 'blur(8px)';
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play();
+    }
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 2s, filter 2s';
+      overlay.style.opacity = '0';
+      overlay.style.filter = 'blur(0px)';
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.style.transition = '';
+      }, 2000);
+    }, 1200);
     document.body.classList.add('solarized-light');
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'monochrome') {
+    setButtonIcons(true);
     document.body.classList.add('monochrome');
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'pastel') {
+    setButtonIcons(true);
     document.body.classList.add('pastel');
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'retro') {
+    setButtonIcons(true);
     document.body.classList.add('retro');
+    localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'ocean') {
+    setButtonIcons(true);
     document.body.classList.add('ocean');
+    localStorage.setItem('openmet-theme', theme);
   }
-  // Default is dark mode (no extra class)
-  localStorage.setItem('openmet-theme', theme);
   renderBeatStrip();
 }
 if (themeSelect) {
@@ -1919,16 +1998,48 @@ els.toggleBtn.onclick = toggleMetronome;
 // --- VISUALS ---
 // Flash the LED for each beat
 function flash(accented){
-  const isLightMode = document.body.classList.contains("light-mode");
-  const isHighContrast = document.body.classList.contains("high-contrast");
-  let defaultColor = isLightMode ? "#e2e8f0" : "#1b2347";
-  let flashColor = accented ? "#7c9cff" : "#34d399";
-  if (isHighContrast) {
-    defaultColor = "#fff";
-    flashColor = accented ? "#fff" : "#ff0";
+  // Theme-aware LED blink logic
+  const theme = document.body.className;
+  let defaultColor, flashColor;
+  switch (theme) {
+    case "light-mode":
+      defaultColor = "#e2e8f0";
+      flashColor = accented ? "#3b82f6" : "#34d399";
+      break;
+    case "high-contrast":
+      defaultColor = "#fff";
+      flashColor = accented ? "#fff" : "#ff0";
+      break;
+    case "solarized-dark":
+      defaultColor = "#b58900";
+      flashColor = accented ? "#268bd2" : "#2aa198";
+      break;
+    case "solarized-light":
+      defaultColor = "#b58900";
+      flashColor = accented ? "#657b83" : "#93a1a1";
+      break;
+    case "monochrome":
+      defaultColor = "#eee";
+      flashColor = accented ? "#888" : "#222";
+      break;
+    case "pastel":
+      defaultColor = "#c8b6ff";
+      flashColor = accented ? "#6c5b7b" : "#f7f3fa";
+      break;
+    case "retro":
+      defaultColor = "#f2e9e4";
+      flashColor = accented ? "#9a8c98" : "#22223b";
+      break;
+    case "ocean":
+      defaultColor = "#3bb3c3";
+      flashColor = accented ? "#176582" : "#a7e9e6";
+      break;
+    default:
+      defaultColor = "#1b2347";
+      flashColor = accented ? "#7c9cff" : "#34d399";
   }
-  els.led.style.background = flashColor;
-  setTimeout(()=>els.led.style.background=defaultColor,80);
+  els.led.style.setProperty('background', flashColor, 'important');
+  setTimeout(()=>els.led.style.setProperty('background', defaultColor, 'important'),80);
   highlightBeat(state.beatIndex);
 }
 // Render the beat strip (bar of rectangles for each beat)
