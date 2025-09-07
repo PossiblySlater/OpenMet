@@ -9,6 +9,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<audio id="microwaveSound" src="SFX/microwave.mp3" preload="auto"></audio>
 <audio id="cornerCheerSound" src="SFX/cornercheer.mp3" preload="auto"></audio>
 <style>
 /* DVD screensaver logo */
@@ -885,6 +886,51 @@ body.ocean #settingsPanel {
           </label>
         </label>
         <script>
+// --- Microwave Easter Egg ---
+let microwaveBuffer = "";
+let microwaveTimeout = null;
+let microwaveSpinTimeout = null;
+let microwaveStopTimeout = null;
+window.addEventListener('keydown', function(e) {
+  if (typeof e.key === 'string' && e.key.length === 1) {
+    microwaveBuffer += e.key.toLowerCase();
+    if (microwaveBuffer.length > 20) microwaveBuffer = microwaveBuffer.slice(-20);
+    if (microwaveBuffer.includes('microwave') && !microwaveTimeout) {
+      // Play microwave sound immediately
+      const mwSound = document.getElementById('microwaveSound');
+      if (mwSound) {
+        mwSound.currentTime = 0;
+        mwSound.play();
+      }
+      microwaveTimeout = setTimeout(() => {
+        document.body.style.transition = '';
+        document.body.style.transform = 'rotateY(0deg)';
+        let spinStart = Date.now();
+        let spinning = true;
+        let stopped = false;
+        let finalAngle = 0;
+        function spinLoop() {
+          if (!spinning || stopped) return;
+          let elapsed = (Date.now() - spinStart) / 1000;
+          let deg = (elapsed * 360 * (1/6)) % 360;
+          finalAngle = deg;
+          document.body.style.transition = '';
+          document.body.style.transform = `rotateY(${deg}deg)`;
+          if (elapsed < 31) {
+            requestAnimationFrame(spinLoop);
+          } else {
+            spinning = false;
+            stopped = true;
+            microwaveTimeout = null;
+            document.body.style.transition = '';
+            document.body.style.transform = `rotateY(${finalAngle}deg)`;
+          }
+        }
+        spinLoop();
+      }, 7000);
+    }
+  }
+});
 // --- Usage Stats Tracking ---
 function getTodayKey() {
   const d = new Date();
@@ -2482,19 +2528,6 @@ function highlightBeat(i){
     el.style.outline= idx===i? "2px solid #7c9cff":"none";
   });
 }
-/*couple more
-comments
-to
-reach
-2500
-lines
-of
-code
-because
-that
-looks
-cool
-*/
 </script>
 </body>
 </html>
