@@ -1639,6 +1639,24 @@ function applyTheme(theme) {
     localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'pastel') {
     setButtonIcons(true);
+    const overlay = document.getElementById('flashbangOverlay');
+    const sound = document.getElementById('flashbangSound');
+    overlay.classList.add('active');
+    overlay.style.opacity = '1';
+    overlay.style.filter = 'blur(8px)';
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play();
+    }
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 2s, filter 2s';
+      overlay.style.opacity = '0';
+      overlay.style.filter = 'blur(0px)';
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.style.transition = '';
+      }, 2000);
+    }, 1200);
     document.body.classList.add('pastel');
     localStorage.setItem('openmet-theme', theme);
   } else if (theme === 'retro') {
