@@ -9,6 +9,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<audio id="cornerCheerSound" src="SFX/cornercheer.mp3" preload="auto"></audio>
+<style>
+/* DVD screensaver logo */
+#dvdLogo {
+  position: fixed;
+  width: 120px;
+  height: 80px;
+  z-index: 99999;
+  pointer-events: none;
+  display: none;
+}
+</style>
 <audio id="flashbangSound" src="SFX/flashbang.mp3" preload="auto"></audio>
 <audio id="powerdownSound" src="SFX/powerdown.mp3" preload="auto"></audio>
 <meta charset="UTF-8">
@@ -489,6 +501,7 @@ html, body {
 </style>
 </head>
 <body>
+  <img id="dvdLogo" src="other/DVD_logo.png" alt="DVD Logo">
   <div id="flashbangOverlay"></div>
   <!-- Tuner link top right -->
   <a href="https://open-met.org/tuner/" style="position:fixed;top:18px;right:24px;z-index:300;color:#7c9cff;text-decoration:none;font-size:1em;padding:8px 18px;border-radius:10px;background:#23284a;box-shadow:0 2px 8px #0003;transition:background 0.2s;display:inline-block;">Tuner</a>
@@ -870,6 +883,133 @@ body.ocean #settingsPanel {
           </label>
         </label>
         <script>
+// --- DVD Mode (Konami Code) ---
+let konamiSequence = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight"];
+let konamiIndex = 0;
+let dvdActive = false;
+let dvdLogo = null;
+let dvdX = 100, dvdY = 100, dvdVX = 2, dvdVY = 2;
+let dvdToCorner = false;
+let dvdCornerTarget = null;
+function activateDVDMode() {
+  dvdActive = true;
+  dvdLogo = document.getElementById("dvdLogo");
+  dvdLogo.style.display = "block";
+  dvdX = Math.random() * (window.innerWidth - 120);
+  dvdY = Math.random() * (window.innerHeight - 80);
+  dvdVX = (Math.random() > 0.5 ? 2 : -2);
+  dvdVY = (Math.random() > 0.5 ? 2 : -2);
+  requestAnimationFrame(moveDVDLogo);
+}
+function moveToNearestCorner() {
+  // Find nearest corner
+  let corners = [
+    {x:0, y:0},
+    {x:0, y:window.innerHeight-80},
+    {x:window.innerWidth-120, y:0},
+    {x:window.innerWidth-120, y:window.innerHeight-80}
+  ];
+  let minDist = Infinity, target = null;
+  for (let c of corners) {
+    let dist = Math.hypot(dvdX-c.x, dvdY-c.y);
+    if (dist < minDist) { minDist = dist; target = c; }
+  }
+  dvdCornerTarget = target;
+  dvdToCorner = true;
+}
+function moveDVDLogo() {
+  if (!dvdActive) return;
+  if (dvdToCorner && dvdCornerTarget) {
+    // Move directly toward the target corner
+    let dx = dvdCornerTarget.x - dvdX;
+    let dy = dvdCornerTarget.y - dvdY;
+    let dist = Math.hypot(dx, dy);
+    let speed = 6;
+    if (dist < speed) {
+      // Begin smooth return to center
+      dvdReturnToCenter = true;
+      dvdToCorner = false;
+      dvdCornerTarget = null;
+      dvdCenterTarget = { x: (window.innerWidth - 120) / 2, y: (window.innerHeight - 80) / 2 };
+      // Play cheer sound
+      const cheer = document.getElementById('cornerCheerSound');
+      if (cheer) {
+        cheer.currentTime = 0;
+        cheer.play();
+      }
+  // Smoothly move to center if needed
+  if (typeof dvdReturnToCenter !== 'undefined' && dvdReturnToCenter && dvdCenterTarget) {
+    let dx = dvdCenterTarget.x - dvdX;
+    let dy = dvdCenterTarget.y - dvdY;
+    let dist = Math.hypot(dx, dy);
+    let speed = 4;
+    if (dist < speed) {
+      dvdX = dvdCenterTarget.x;
+      dvdY = dvdCenterTarget.y;
+      dvdReturnToCenter = false;
+      dvdCenterTarget = null;
+      // Resume bouncing with random velocity
+      function randomNonZeroSpeed() {
+        let s = 2 + Math.random() * 3;
+        return Math.random() > 0.5 ? s : -s;
+      }
+      dvdVX = randomNonZeroSpeed();
+      dvdVY = randomNonZeroSpeed();
+      if (Math.abs(dvdVX) < 1) dvdVX = dvdVX > 0 ? 2 : -2;
+      if (Math.abs(dvdVY) < 1) dvdVY = dvdVY > 0 ? 2 : -2;
+    } else {
+      dvdX += (dx/dist)*speed;
+      dvdY += (dy/dist)*speed;
+    }
+    dvdLogo.style.left = dvdX + "px";
+    dvdLogo.style.top = dvdY + "px";
+    requestAnimationFrame(moveDVDLogo);
+    return;
+  }
+    } else {
+      dvdX += (dx/dist)*speed;
+      dvdY += (dy/dist)*speed;
+    }
+  } else {
+    dvdX += dvdVX;
+    dvdY += dvdVY;
+    let hitCorner = false;
+    // Check for corner hit
+    if ((dvdX <= 0 && dvdY <= 0) ||
+        (dvdX <= 0 && dvdY >= window.innerHeight - 80) ||
+        (dvdX >= window.innerWidth - 120 && dvdY <= 0) ||
+        (dvdX >= window.innerWidth - 120 && dvdY >= window.innerHeight - 80)) {
+      hitCorner = true;
+    }
+    if (dvdX <= 0 || dvdX >= window.innerWidth - 120) dvdVX *= -1;
+    if (dvdY <= 0 || dvdY >= window.innerHeight - 80) dvdVY *= -1;
+    if (hitCorner) {
+      const cheer = document.getElementById('cornerCheerSound');
+      if (cheer) {
+        cheer.currentTime = 0;
+        cheer.play();
+      }
+    }
+  }
+  dvdLogo.style.left = dvdX + "px";
+  dvdLogo.style.top = dvdY + "px";
+  requestAnimationFrame(moveDVDLogo);
+}
+window.addEventListener("keydown", function(e) {
+  if (e.key === konamiSequence[konamiIndex]) {
+    konamiIndex++;
+    if (konamiIndex === konamiSequence.length) {
+      if (!dvdActive) {
+        activateDVDMode();
+      } else {
+        moveToNearestCorner();
+      }
+      konamiIndex = 0;
+    }
+  } else {
+    konamiIndex = 0;
+  }
+});
         document.addEventListener('DOMContentLoaded', function() {
           var leftHandedToggle = document.getElementById('leftHandedToggle');
           leftHandedToggle.addEventListener('change', function() {
