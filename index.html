@@ -523,7 +523,9 @@ html, body {
 
   <!-- Copyright and GitHub link bottom left -->
   <div style="position:fixed;bottom:10px;left:10px;z-index:100;font-size:13px;color:#8b9bb4;display:flex;align-items:center;gap:10px;">
-    <span>OpenMet © 2025 by Slater Feistner</span>
+  <!-- Usage Stats Display (above copyright) -->
+  <div id="usageStats" style="position:fixed;bottom:38px;left:10px;z-index:101;font-size:15px;color:#8b9bb4;display:flex;gap:24px;align-items:center;justify-content:flex-start;"></div>
+    <span>OpenMet v1.2.5 © 2025 by Slater Feistner</span>
     <a href="https://github.com/PossiblySlater/OpenMet" target="_blank" style="color:#7c9cff;text-decoration:none;display:flex;align-items:center;gap:4px;">
       <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
       <span>GitHub</span>
@@ -883,6 +885,67 @@ body.ocean #settingsPanel {
           </label>
         </label>
         <script>
+// --- Usage Stats Tracking ---
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+function getStats() {
+  let stats = JSON.parse(localStorage.getItem('openmet-usage-stats') || '{}');
+  return stats;
+}
+function saveStats(stats) {
+  localStorage.setItem('openmet-usage-stats', JSON.stringify(stats));
+}
+function updateUsageStatsUI() {
+  const stats = getStats();
+  const todayKey = getTodayKey();
+  const todaySeconds = stats[todayKey] || 0;
+  // Calculate streak
+  let streak = 0;
+  let d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const key = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()-i}`;
+    if (stats[key] && stats[key] > 0) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  const statsDiv = document.getElementById('usageStats');
+  if (statsDiv) {
+    statsDiv.innerHTML = `<b>Today's Active Time:</b> ${formatTime(todaySeconds)} <b>Daily Streak:</b> ${streak} day${streak===1?'':'s'}`;
+  }
+}
+function formatTime(seconds) {
+  const h = Math.floor(seconds/3600);
+  const m = Math.floor((seconds%3600)/60);
+  const s = seconds%60;
+  return `${h>0?h+':':''}${(h>0&&m<10)?'0':''}${m}:${s<10?'0':''}${s}`;
+}
+let usageTimer = null, usageStart = null;
+function startUsageTimer() {
+  usageStart = Date.now();
+  if (!usageTimer) {
+    usageTimer = setInterval(()=>{
+      const stats = getStats();
+      const todayKey = getTodayKey();
+      const now = Date.now();
+      const elapsed = Math.floor((now-usageStart)/1000);
+      stats[todayKey] = (stats[todayKey]||0) + 1;
+      saveStats(stats);
+      updateUsageStatsUI();
+      usageStart = now;
+    },1000);
+  }
+}
+function stopUsageTimer() {
+  if (usageTimer) {
+    clearInterval(usageTimer);
+    usageTimer = null;
+  }
+}
+document.addEventListener('DOMContentLoaded', updateUsageStatsUI);
 // --- DVD Mode (Konami Code) ---
 let konamiSequence = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight"];
 let konamiIndex = 0;
@@ -2087,6 +2150,7 @@ let voicePrefix = getSelectedVoicePrefix();
 // Start the metronome
 // Start the metronome
 function start(){
+  startUsageTimer();
   initAudio();
   actuallyStartMet();
 }
@@ -2115,6 +2179,8 @@ function actuallyStartMet() {
 // Stop the metronome
 // Stop the metronome and update UI
 function stop(){
+  stopUsageTimer();
+  updateUsageStatsUI();
   state.isRunning=false;
   clearTimeout(state.schedulerId); state.schedulerId=null;
   
@@ -2416,6 +2482,19 @@ function highlightBeat(i){
     el.style.outline= idx===i? "2px solid #7c9cff":"none";
   });
 }
+/*couple more
+comments
+to
+reach
+2500
+lines
+of
+code
+because
+that
+looks
+cool
+*/
 </script>
 </body>
 </html>
