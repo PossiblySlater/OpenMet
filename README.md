@@ -39,26 +39,9 @@ OpenMet is a modern, web-based metronome designed for musicians, educators, and 
 
 And maybe even a few easter eggs?
 
-## Getting Started
-
-1. Open `index.html` in your web browser.
-2. Use the settings panel to customize appearance, audio, and sounds.
-3. Program sets, adjust tempo, and start practicing!
-
-## Usage
-
-- **Start/Stop:** Use the main button to start or stop the metronome.
-- **Customize:** Switch themes, adjust volumes, and select voice packs in the settings panel.
-- **Program Sets:** Add, edit, and loop sets for complex practice routines.
-- **Import/Export:** Save your favorite configurations and load them anytime.
-
-## Accessibility
-
-OpenMet is designed with accessibility in mind. Use High Contrast mode or other themes for better visibility. Controls are large and easy to use.
-
 ## License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+This project is licensed under the GNU v3.0 License. See `LICENSE` for details.
 
 ## Author
 
