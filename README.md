@@ -1,8 +1,10 @@
 # OpenMet Metronome
 
-OpenMet is a modern, web-based metronome designed for musicians, educators, and anyone who needs precise rhythm practice. It features a clean, customizable interface, advanced set programming, and accessibility options for all users.
+OpenMet is a modern, web-based metronome designed for musicians, educators, and anyone who needs precise rhythm practice. It features a clean, customizable interface, advanced set programming, accessibility options, and playful surprises.
 
-  > ⚠️ **Note:** It is not recommended to use OpenMet on a mobile device, as formatting and some features do not work properly on most mobile devices. Any contributions to the mobile experience are appreciated.
+**Live Website:** [https://open-met.org](https://open-met.org)
+
+> ⚠️ **Note:** OpenMet works best on desktop browsers. Some features and formatting may not work properly on mobile devices. Contributions to improve the mobile experience are welcome!
 
 ## Features
 
@@ -22,9 +24,6 @@ OpenMet is a modern, web-based metronome designed for musicians, educators, and 
 - **Voice Counting:**
   - Select from different voice packs for count-in sounds
 
-  > ⚠️ **Note:** Voice counting may not work properly on some mobile devices due to browser limitations.
-  
-
 - **Set Programming:**
   - Create, edit, and loop sets with custom BPM, time signature, and measures
   - Save and load favorite metronome configurations
@@ -32,6 +31,9 @@ OpenMet is a modern, web-based metronome designed for musicians, educators, and 
 - **Import/Export:**
   - Export sets as .openmet files (JSON)
   - Import sets from .openmet or .json files
+
+- **Usage Stats:**
+  - Track your daily practice time and streaks
 
 - **Accessibility:**
   - High Contrast mode
