@@ -5,7 +5,93 @@
 <!-- i am genuinely sorry -->
 <audio id="microwaveSound" src="SFX/microwave.mp3" preload="auto"></audio>
 <audio id="cornerCheerSound" src="SFX/cornercheer.mp3" preload="auto"></audio>
+<!-- Metronome sounds -->
+<audio id="clickSound" src="metsounds/click/click.mp3" preload="auto"></audio>
+<audio id="accentClickSound" src="metsounds/click/accentclick.mp3" preload="auto"></audio>
+<audio id="clinicianSound" src="metsounds/clinician/clinician.mp3" preload="auto"></audio>
+<audio id="accentClinicianSound" src="metsounds/clinician/accentclinician.mp3" preload="auto"></audio>
 <style>
+/* --- Responsive/Mobile Styles --- */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body, .panel, .settings-panel, .settings-tab-content, .setting-group {
+  box-sizing: border-box;
+}
+
+.panel, .settings-panel {
+  max-width: 100vw;
+  width: 100%;
+  padding: 0.5em 1em;
+}
+
+#beatStrip {
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100vw;
+  overflow-x: auto;
+}
+
+input, select, button, .toggle-switch, .slider {
+  font-size: 1.1em;
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+label, .setting-group, .settings-tab-content {
+  width: 100%;
+  max-width: 100vw;
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .panel, .settings-panel {
+    padding: 0.5em 0.2em;
+  }
+  .settings-panel {
+    left: 0 !important;
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+  }
+  .settings-tab-content, .setting-group {
+    padding: 0.5em 0.2em;
+    width: 100vw;
+    min-width: 0;
+    max-width: 100vw;
+  }
+  #beatStrip {
+    gap: 2px !important;
+    min-width: 0;
+    max-width: 100vw;
+  }
+  input, select, button, .toggle-switch, .slider {
+    font-size: 1em;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  h1, h2, h3, h4 {
+    font-size: 1.1em !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel, .settings-panel, .settings-tab-content, .setting-group {
+    padding: 0.2em 0.1em;
+    font-size: 0.98em;
+  }
+  #beatStrip {
+    gap: 1px !important;
+  }
+  input, select, button, .toggle-switch, .slider {
+    font-size: 0.98em;
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
 #dvdLogo {
   position: fixed;
   width: 120px;
@@ -843,7 +929,14 @@ body.ocean #settingsPanel {
           <input type="radio" name="metronomeSound" id="metronomeDefault" value="default" checked>
           <span style="text-align:left">Default</span>
         </label>
-        <!-- Add more metronome sounds here in the future maybe -->
+        <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+          <input type="radio" name="metronomeSound" id="metronomeClick" value="click">
+          <span style="text-align:left">Click</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+          <input type="radio" name="metronomeSound" id="metronomeClinician" value="clinician">
+          <span style="text-align:left">Non-Trademark Infringing Clinician</span>
+        </label>
       </div>
       <div class="setting-group" id="voicesGroup">
         <h3>Voice</h3>
@@ -1215,6 +1308,34 @@ window.addEventListener("keydown", function(e) {
       </div>
     </div>
     <h3>Program Sets</h3>
+    
+    <!-- Search and Filter Controls -->
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <label style="display:flex;flex-direction:column;align-items:flex-start;margin:0">
+        <span style="font-size:14px;margin-bottom:4px">Search Sets</span>
+        <input id="setSearch" type="text" placeholder="Search by name, BPM, or time signature..." style="width:250px">
+      </label>
+      <label style="display:flex;flex-direction:column;align-items:flex-start;margin:0">
+        <span style="font-size:14px;margin-bottom:4px">Filter by BPM</span>
+        <select id="bpmFilter" style="width:120px">
+          <option value="">All BPMs</option>
+          <option value="slow">Slow (60-90)</option>
+          <option value="medium">Medium (90-140)</option>
+          <option value="fast">Fast (140+)</option>
+        </select>
+      </label>
+      <label style="display:flex;flex-direction:column;align-items:flex-start;margin:0">
+        <span style="font-size:14px;margin-bottom:4px">Sort by</span>
+        <select id="sortBy" style="width:120px">
+          <option value="order">Order</option>
+          <option value="name">Name</option>
+          <option value="bpm">BPM</option>
+          <option value="measures">Measures</option>
+        </select>
+      </label>
+      <button id="clearFilters" class="btn ghost" style="margin-top:20px">Clear</button>
+    </div>
+    
     <table>
       <thead><tr><th>#</th><th>Start</th><th>End</th><th>Set Name</th><th>BPM</th><th>TS</th><th>Measures</th><th>Actions</th></tr></thead>
       <tbody id="setTable"></tbody>
@@ -1332,7 +1453,8 @@ COWABUNGA-DERO! THAT'S THE SMOOTH TASTE OF TV TIME!
 Sick of the CLASSICS? We'll make 'em NEO! NEO shows, NEO programs, just watch, watch, WATCH!
 CHAOS, CHAOS!
 I Just Want To Make Everyone Smile And If I Become An Evil Villain To Accomplish That Is That Bad?
-Go play minecrap or something!</textarea>
+Go play minecrap or something!
+</textarea>
 
 <script>
 // UI ELEMENT REFERENCES
@@ -1449,10 +1571,42 @@ let state = {
   currentSet: null,
   beatStates: [], // 0 = off, 1 = normal, 2 = accented
   startSetIndex: 0,
-  endSetIndex: 0
+  endSetIndex: 0,
+  // Filter and search state
+  searchTerm: "",
+  bpmFilter: "",
+  sortBy: "order",
+  filteredSets: [],
+  // Metronome sound selection
+  metronomeSound: "default",
+  // Voice AudioBuffers
+  voiceBuffers: {
+    brad: {},
+    grandpa: {},
+    slater: {}
+  }
 };
 
 // SETTINGS PANEL LOGIC
+// Preload all voice audio files into AudioBuffers for sample-accurate playback
+async function preloadVoiceBuffers() {
+  if (!state.audioCtx) return;
+  const voices = ['brad', 'grandpa', 'slater'];
+  const maxClips = 12;
+  for (const voice of voices) {
+    for (let i = 1; i <= maxClips; i++) {
+      const url = `Voices/${voice.charAt(0).toUpperCase() + voice.slice(1)}/${i}.mp3`;
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+        state.voiceBuffers[voice][i] = audioBuffer;
+      } catch (e) {
+        // File may not exist, skip
+      }
+    }
+  }
+}
 // Show/hide settings panel
 els.settingsIcon.onclick = ()=> els.settingsPanel.style.display="block";
 els.closeSettings.onclick = ()=> els.settingsPanel.style.display="none";
@@ -1713,29 +1867,8 @@ tabBtns.other.onclick = () => showTab("other");
 // SETS MANAGEMENT
 // Render the sets table in the UI
 function renderSets(){
-  els.setTable.innerHTML = "";
-  state.sets.forEach((s,i)=>{
-    const row = document.createElement("tr");
-    // Only highlight if metronome is running, using sets, and this is the current set
-    if(state.currentSetIndex === i && state.isRunning && els.useSetsToggle.checked){
-      row.classList.add("active-set");
-      row.style.background = "#1b2347";
-      row.style.border = "2px solid #7c9cff";
-    } else {
-      // Reset to default styling when not highlighted
-      row.style.background = "";
-      row.style.border = "";
-    }
-    row.innerHTML = `<td>${i+1}</td>
-      <td><input type="checkbox" ${i === state.startSetIndex ? 'checked' : ''} onchange="setStartSet(${i})"></td>
-      <td><input type="checkbox" ${i === state.endSetIndex ? 'checked' : ''} onchange="setEndSet(${i})"></td>
-      <td>${s.name}</td>
-      <td>${s.bpm}</td>
-      <td>${s.top}/${s.bottom}</td>
-      <td>${s.measures}</td>
-      <td><button onclick="removeSet(${i})" title="Remove Set">❌</button></td>`;
-    els.setTable.appendChild(row);
-  });
+  // Apply filters and render
+  applyFilters();
 }
 // Remove a set from the list and update indices
 function removeSet(i){ 
@@ -1750,6 +1883,178 @@ function removeSet(i){
   }
   
   renderSets(); 
+}
+
+// Duplicate a set
+function duplicateSet(i) {
+  if (i >= 0 && i < state.sets.length) {
+    const originalSet = state.sets[i];
+    const duplicatedSet = {
+      name: originalSet.name + " (Copy)",
+      bpm: originalSet.bpm,
+      top: originalSet.top,
+      bottom: originalSet.bottom,
+      measures: originalSet.measures,
+      subdivision: originalSet.subdivision,
+      beatStates: originalSet.beatStates ? [...originalSet.beatStates] : []
+    };
+    
+    // Insert the duplicate after the original set
+    state.sets.splice(i + 1, 0, duplicatedSet);
+    
+    // Update end set index if needed
+    if (state.endSetIndex >= i) {
+      state.endSetIndex++;
+    }
+    
+    renderSets();
+  }
+}
+
+// Move a set up in the list
+function moveSetUp(i) {
+  if (i > 0 && i < state.sets.length) {
+    // Swap with previous set
+    const temp = state.sets[i];
+    state.sets[i] = state.sets[i - 1];
+    state.sets[i - 1] = temp;
+    
+    // Update indices
+    if (state.startSetIndex === i) {
+      state.startSetIndex = i - 1;
+    } else if (state.startSetIndex === i - 1) {
+      state.startSetIndex = i;
+    }
+    
+    if (state.endSetIndex === i) {
+      state.endSetIndex = i - 1;
+    } else if (state.endSetIndex === i - 1) {
+      state.endSetIndex = i;
+    }
+    
+    if (state.currentSetIndex === i) {
+      state.currentSetIndex = i - 1;
+    } else if (state.currentSetIndex === i - 1) {
+      state.currentSetIndex = i;
+    }
+    
+    renderSets();
+  }
+}
+
+// Move a set down in the list
+function moveSetDown(i) {
+  if (i >= 0 && i < state.sets.length - 1) {
+    // Swap with next set
+    const temp = state.sets[i];
+    state.sets[i] = state.sets[i + 1];
+    state.sets[i + 1] = temp;
+    
+    // Update indices
+    if (state.startSetIndex === i) {
+      state.startSetIndex = i + 1;
+    } else if (state.startSetIndex === i + 1) {
+      state.startSetIndex = i;
+    }
+    
+    if (state.endSetIndex === i) {
+      state.endSetIndex = i + 1;
+    } else if (state.endSetIndex === i + 1) {
+      state.endSetIndex = i;
+    }
+    
+    if (state.currentSetIndex === i) {
+      state.currentSetIndex = i + 1;
+    } else if (state.currentSetIndex === i + 1) {
+      state.currentSetIndex = i;
+    }
+    
+    renderSets();
+  }
+}
+
+// SEARCH AND FILTER FUNCTIONALITY
+// Apply search and filter to sets
+function applyFilters() {
+  let filtered = [...state.sets];
+  
+  // Apply search filter
+  if (state.searchTerm) {
+    const searchLower = state.searchTerm.toLowerCase();
+    filtered = filtered.filter(set => 
+      set.name.toLowerCase().includes(searchLower) ||
+      set.bpm.toString().includes(searchLower) ||
+      `${set.top}/${set.bottom}`.includes(searchLower)
+    );
+  }
+  
+  // Apply BPM filter
+  if (state.bpmFilter) {
+    filtered = filtered.filter(set => {
+      switch (state.bpmFilter) {
+        case 'slow': return set.bpm >= 60 && set.bpm <= 90;
+        case 'medium': return set.bpm > 90 && set.bpm <= 140;
+        case 'fast': return set.bpm > 140;
+        default: return true;
+      }
+    });
+  }
+  
+  // Apply sorting
+  filtered.sort((a, b) => {
+    switch (state.sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'bpm':
+        return a.bpm - b.bpm;
+      case 'measures':
+        return a.measures - b.measures;
+      case 'order':
+      default:
+        // Maintain original order by finding original indices
+        const indexA = state.sets.findIndex(s => s === a);
+        const indexB = state.sets.findIndex(s => s === b);
+        return indexA - indexB;
+    }
+  });
+  
+  state.filteredSets = filtered;
+  renderFilteredSets();
+}
+
+// Render filtered sets
+function renderFilteredSets() {
+  els.setTable.innerHTML = "";
+  state.filteredSets.forEach((s, i) => {
+    // Find original index for proper functionality
+    const originalIndex = state.sets.findIndex(set => set === s);
+    
+    const row = document.createElement("tr");
+    // Only highlight if metronome is running, using sets, and this is the current set
+    if(state.currentSetIndex === originalIndex && state.isRunning && els.useSetsToggle.checked){
+      row.classList.add("active-set");
+      row.style.background = "#1b2347";
+      row.style.border = "2px solid #7c9cff";
+    } else {
+      // Reset to default styling when not highlighted
+      row.style.background = "";
+      row.style.border = "";
+    }
+    row.innerHTML = `<td>${originalIndex + 1}</td>
+      <td><input type="checkbox" ${originalIndex === state.startSetIndex ? 'checked' : ''} onchange="setStartSet(${originalIndex})"></td>
+      <td><input type="checkbox" ${originalIndex === state.endSetIndex ? 'checked' : ''} onchange="setEndSet(${originalIndex})"></td>
+      <td>${s.name}</td>
+      <td>${s.bpm}</td>
+      <td>${s.top}/${s.bottom}</td>
+      <td>${s.measures}</td>
+      <td>
+        <button onclick="duplicateSet(${originalIndex})" title="Duplicate Set">📋</button>
+        <button onclick="moveSetUp(${originalIndex})" title="Move Up" ${originalIndex === 0 ? 'disabled' : ''}>⬆️</button>
+        <button onclick="moveSetDown(${originalIndex})" title="Move Down" ${originalIndex === state.sets.length - 1 ? 'disabled' : ''}>⬇️</button>
+        <button onclick="removeSet(${originalIndex})" title="Remove Set">❌</button>
+      </td>`;
+    els.setTable.appendChild(row);
+  });
 }
 
 // Set the start set index for playback range
@@ -1781,7 +2086,8 @@ els.addSetBtn.onclick = ()=>{
     top: Number(els.setTop.value),
     bottom: Number(els.setBottom.value),
     measures: Number(els.setMeasures.value),
-    subdivision: Number(els.subdivision.value)
+    subdivision: Number(els.subdivision.value),
+    beatStates: [...state.beatStates] // Save current beat states
   });
   
   // Set default start/end if this is the first set
@@ -1799,6 +2105,11 @@ els.addSetBtn.onclick = ()=>{
 // EXPORT / IMPORT SETS
 // Export sets as .openmet file (JSON with .openmet extension, group name as filename)
 els.exportBtn.onclick = ()=>{
+  // Save current beat states to active set before exporting
+  if (state.currentSet && els.useSetsToggle.checked) {
+    state.currentSet.beatStates = [...state.beatStates];
+  }
+  
   const data = {
     groupName: els.groupName.value || "Untitled Group",
     sets: state.sets
@@ -1833,6 +2144,15 @@ els.importFile.onchange = e=>{
     if (data && data.sets && Array.isArray(data.sets)) {
       state.sets = data.sets;
       els.groupName.value = data.groupName || "";
+      
+      // Reset set indices and load first set if available
+      if (state.sets.length > 0) {
+        state.startSetIndex = 0;
+        state.endSetIndex = Math.min(0, state.sets.length - 1);
+        state.currentSetIndex = 0;
+        loadSet(0); // Load first set to display its beat states
+      }
+      
       renderSets();
     } else {
       alert("Invalid file: missing sets array");
@@ -1844,12 +2164,64 @@ els.importFile.onchange = e=>{
 // AUDIO LOGIC
 // Initialize the Web Audio context for metronome sounds
 function initAudio(){
-  if(!state.audioCtx){ state.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+  if(!state.audioCtx){
+    state.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    preloadVoiceBuffers();
+  }
 }
 // Play a metronome click sound (accented or subdivision)
 function clickSound(time, accented, isSubdivision = false){
   const ctx = state.audioCtx; if(!ctx) return;
-  const osc = ctx.createOscillator(); const gain = ctx.createGain();
+  
+  // Use audio files for Click and Clinician sounds
+  if (state.metronomeSound === "click" || state.metronomeSound === "clinician") {
+    let audioElement;
+    if (state.metronomeSound === "click") {
+      // Click sound: use different files for accented vs normal
+      audioElement = accented ? document.getElementById('accentClickSound') : document.getElementById('clickSound');
+    } else if (state.metronomeSound === "clinician") {
+      // Clinician sound: use different files for accented vs normal
+      audioElement = accented ? document.getElementById('accentClinicianSound') : document.getElementById('clinicianSound');
+    }
+    if (audioElement) {
+      // Create a new audio context source for precise timing
+      const source = ctx.createBufferSource();
+      const gainNode = ctx.createGain();
+      
+      // Set volume based on accent and subdivision
+      let volume = isSubdivision ? state.subVolume : state.mainVolume;
+      if (accented && !isSubdivision) volume *= 1.2; // Slightly louder for accents
+      
+      gainNode.gain.setValueAtTime(volume, time);
+      source.connect(gainNode).connect(ctx.destination);
+      
+      // Load and play the audio file
+      fetch(audioElement.src)
+        .then(response => response.arrayBuffer())
+        .then(data => ctx.decodeAudioData(data))
+        .then(buffer => {
+          source.buffer = buffer;
+          source.start(time);
+        })
+        .catch(err => {
+          console.warn('Failed to load metronome sound:', err);
+          // Fallback to default sound
+          playDefaultSound(time, accented, isSubdivision);
+        });
+      
+      return;
+    }
+  }
+  
+  // Default sound (synthesized)
+  playDefaultSound(time, accented, isSubdivision);
+}
+
+// Play the default synthesized metronome sound
+function playDefaultSound(time, accented, isSubdivision) {
+  const ctx = state.audioCtx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
   
   if (isSubdivision) {
     // Duller sound for subdivisions
@@ -1887,8 +2259,17 @@ function loadSet(setIndex) {
     state.currentSetIndex = setIndex;
     state.measureIndex = 0;
     
-    // Reset beat states for new time signature
-    state.beatStates = [];
+    // Restore beat states from set data, or initialize defaults if not present
+    if (set.beatStates && set.beatStates.length === set.top) {
+      state.beatStates = [...set.beatStates];
+    } else {
+      // Initialize default beat states for new time signature
+      state.beatStates = [];
+      for (let i = 0; i < set.top; i++) {
+        // Default: first beat accented, others normal
+        state.beatStates[i] = i === 0 ? 2 : 1;
+      }
+    }
     
     // Update UI
     els.setBpm.value = set.bpm;
@@ -1928,27 +2309,31 @@ function advanceToNextSet() {
 // Schedule a main beat note, play sound, and handle voice/DR logic
 function scheduleNote(time){
   // Check if this beat should play based on its state
-  const beatState = state.beatStates[state.beatIndex];
+  const ctx = state.audioCtx;
+  const now = ctx.currentTime;
+  const delay = Math.max(0, (time - now) * 1000);
+  // Capture the current beat index and state for correct visual sync
+  const thisBeatIndex = state.beatIndex;
+  const beatState = state.beatStates[thisBeatIndex];
   if (beatState === 0) {
-    // Beat is off, skip sound but still flash LED
-    flash(false);
+    setTimeout(() => {
+      if (state.isRunning) flash(false, thisBeatIndex);
+    }, delay);
   } else {
-    // Beat is on (normal or accented)
     const accented = beatState === 2;
-    flash(accented); // Always flash, even in DR mode
+    setTimeout(() => {
+      if (state.isRunning) flash(accented, thisBeatIndex);
+    }, delay);
     // --- Voice logic ---
     if (drMode) {
-      // Only play random DR SFX
       let sfx = pickDrSfx();
       let audio = new Audio('SFX/dr/' + sfx);
       audio.play();
-      // Show and control tenna.mp4 playback speed
       const tennaVidContainer = document.getElementById('tennaVidContainer');
       const tennaVid = document.getElementById('tennaVid');
       if (tennaVidContainer && tennaVid) {
         tennaVidContainer.style.display = 'block';
         tennaVidContainer.style.opacity = '1';
-        // Calculate speed ratio
         const baseBpm = 86.5;
         const speedRatio = state.bpm / baseBpm;
         tennaVid.playbackRate = speedRatio;
@@ -1957,28 +2342,25 @@ function scheduleNote(time){
     } else if (
       els.voiceToggle && els.voiceToggle.checked
     ) {
-      let number = state.beatIndex + 1;
+      let number = thisBeatIndex + 1;
       if (number >= 1 && number <= 12) {
-        let voiceId = null;
+        let voice = null;
         if (els.voiceBrad && els.voiceBrad.checked) {
-          voiceId = "bradVoice" + number;
+          voice = 'brad';
         } else if (els.voiceGrandpa && els.voiceGrandpa.checked) {
-          voiceId = "grandpaVoice" + number;
+          voice = 'grandpa';
         } else if (els.voiceSlater && els.voiceSlater.checked) {
-          voiceId = "slaterVoice" + number;
+          voice = 'slater';
         }
-        if (voiceId) {
-          const audio = document.getElementById(voiceId);
-          if (audio) {
-            audio.currentTime = 0;
-            audio.play();
-          }
+        if (voice && state.voiceBuffers[voice][number]) {
+          const source = state.audioCtx.createBufferSource();
+          source.buffer = state.voiceBuffers[voice][number];
+          source.connect(state.audioCtx.destination);
+          source.start(time);
         }
       }
-      // Always play the click sound as well
       clickSound(time, accented);
     } else {
-      // Normal click only
       clickSound(time, accented);
     }
   }
@@ -2170,6 +2552,75 @@ if (savedVoiceChoice === 'grandpa') {
   els.voiceSlater.checked = false;
 }
 
+// SEARCH AND FILTER EVENT LISTENERS
+// Add event listeners for search and filter controls
+document.addEventListener('DOMContentLoaded', function() {
+  const setSearch = document.getElementById('setSearch');
+  const bpmFilter = document.getElementById('bpmFilter');
+  const sortBy = document.getElementById('sortBy');
+  const clearFilters = document.getElementById('clearFilters');
+  
+  if (setSearch) {
+    setSearch.addEventListener('input', function() {
+      state.searchTerm = this.value;
+      applyFilters();
+    });
+  }
+  
+  if (bpmFilter) {
+    bpmFilter.addEventListener('change', function() {
+      state.bpmFilter = this.value;
+      applyFilters();
+    });
+  }
+  
+  if (sortBy) {
+    sortBy.addEventListener('change', function() {
+      state.sortBy = this.value;
+      applyFilters();
+    });
+  }
+  
+  if (clearFilters) {
+    clearFilters.addEventListener('click', function() {
+      state.searchTerm = "";
+      state.bpmFilter = "";
+      state.sortBy = "order";
+      
+      if (setSearch) setSearch.value = "";
+      if (bpmFilter) bpmFilter.value = "";
+      if (sortBy) sortBy.value = "order";
+      
+      applyFilters();
+    });
+  }
+});
+
+// METRONOME SOUND SELECTION
+// Add event listeners for metronome sound selection
+document.addEventListener('DOMContentLoaded', function() {
+  const metronomeSounds = document.querySelectorAll('input[name="metronomeSound"]');
+  
+  metronomeSounds.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.checked) {
+        state.metronomeSound = this.value;
+        localStorage.setItem('openmet-metronome-sound', this.value);
+      }
+    });
+  });
+  
+  // Restore saved metronome sound selection
+  const savedMetronomeSound = localStorage.getItem('openmet-metronome-sound');
+  if (savedMetronomeSound) {
+    state.metronomeSound = savedMetronomeSound;
+    const savedRadio = document.querySelector(`input[name="metronomeSound"][value="${savedMetronomeSound}"]`);
+    if (savedRadio) {
+      savedRadio.checked = true;
+    }
+  }
+});
+
 // Helper to get the selected voice prefix for audio element IDs
 function getSelectedVoicePrefix() {
   if (els.voiceBrad && els.voiceBrad.checked) return "bradVoice";
@@ -2242,6 +2693,8 @@ els.toggleBtn.onclick = toggleMetronome;
 // Flash the LED for each beat
 function flash(accented){
   // Theme-aware LED blink logic
+  // Accepts optional beatIndex for correct highlighting
+  let beatIndex = arguments.length > 1 ? arguments[1] : state.beatIndex;
   const theme = document.body.className;
   let defaultColor, flashColor;
   switch (theme) {
@@ -2283,7 +2736,7 @@ function flash(accented){
   }
   els.led.style.setProperty('background', flashColor, 'important');
   setTimeout(()=>els.led.style.setProperty('background', defaultColor, 'important'),80);
-  highlightBeat(state.beatIndex);
+  highlightBeat(beatIndex);
 }
 // Render the beat strip
 function renderBeatStrip(){
@@ -2444,6 +2897,11 @@ resetToDefaults();
 // Cycle a beat's state (off -> normal -> accented -> off)
 function cycleBeatState(beatIndex) {
   state.beatStates[beatIndex] = (state.beatStates[beatIndex] + 1) % 3;
+  
+  // Save beat states to current set if using sets
+  if (state.currentSet && els.useSetsToggle.checked) {
+    state.currentSet.beatStates = [...state.beatStates];
+  }
   
   // Update the visual
   const beatElement = els.beatStrip.children[beatIndex];
