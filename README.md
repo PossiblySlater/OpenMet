@@ -20,6 +20,7 @@ OpenMet is a modern, web-based metronome designed for musicians, educators, and 
 - **Settings Panel:**
   - Appearance, audio, and sound customization
   - Tabbed interface for easy navigation
+  - Custom metronome sound upload (normal and accented beats)
 
 - **Voice Counting:**
   - Select from different voice packs for count-in sounds
@@ -40,6 +41,38 @@ OpenMet is a modern, web-based metronome designed for musicians, educators, and 
   - Large controls and theme options
 
 And maybe even a few easter eggs?
+# Update v1.3.1
+## More Metronome Sounds
+
+- Default
+- Click
+- Non-Trademark-Infringing Clinician
+### Custom Metronome Sounds
+
+OpenMet now supports uploading your own custom metronome sounds! This feature allows you to personalize your practice experience with any audio files you prefer.
+
+#### How to Use Custom Sounds
+
+1. **Access Settings**: Click the gear icon (⚙️) in the top right corner of the metronome
+2. **Navigate to Sounds Tab**: Click on the "Sounds" tab in the settings panel
+3. **Select Custom**: Choose the "Custom" radio button under the Metronome section
+4. **Upload Your Sounds**: 
+   - **Normal**: Upload the sound file for regular beats
+   - **Accent**: Upload the sound file for accented beats (optional - if not provided, the normal sound will be used)
+5. **Start Using**: Close the settings panel and start the metronome to hear your custom sounds!
+
+#### Supported Audio Formats
+
+OpenMet supports all common web audio formats including:
+- MP3 (.mp3)
+- WAV (.wav)
+- OGG (.ogg)
+- M4A (.m4a)
+- FLAC (.flac)
+
+## Bug Fixes
+- Fixed occasional delay of sounds on slower devices
+
 
 ## License
 

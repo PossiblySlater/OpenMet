@@ -212,6 +212,35 @@ tr.active-set{background:#1b2347}
 .setting-group{margin-bottom:16px}
 #closeSettings{cursor:pointer;color:#f87171;float:right;font-weight:bold}
 
+/* Custom sound upload styling */
+#customSoundUpload {
+  background: #1a1e2e;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #2a3358;
+}
+#customSoundUpload input[type="file"] {
+  background: #0e1433;
+  border: 1px solid #2a3358;
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #fff;
+  width: 100%;
+  max-width: 160px;
+}
+#customSoundUpload input[type="file"]::-webkit-file-upload-button {
+  background: #7c9cff;
+  color: white;
+  border: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+#customSoundUpload input[type="file"]::-webkit-file-upload-button:hover {
+  background: #6b8aff;
+}
+
 /* Settings tabs */
 .settings-tabs {
   display: flex;
@@ -856,6 +885,25 @@ body.ocean #settingsPanel {
           <input type="radio" name="metronomeSound" id="metronomeClinician" value="clinician">
           <span style="text-align:left">Non-Trademark Infringing Clinician</span>
         </label>
+        <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+          <input type="radio" name="metronomeSound" id="metronomeCustom" value="custom">
+          <span style="text-align:left">Custom</span>
+        </label>
+        <div id="customSoundUpload" style="margin:8px 0;display:none">
+          <label style="display:flex;align-items:center;gap:8px;margin:4px 0">
+            <span style="font-size:12px">Normal:</span>
+            <input type="file" id="customSoundFile" accept="audio/*" style="font-size:12px">
+          </label>
+          <div id="customNormalStatus" style="font-size:11px;color:#8b9bb4;margin:2px 0 6px 65px;display:none"></div>
+          <label style="display:flex;align-items:center;gap:8px;margin:4px 0">
+            <span style="font-size:12px">Accent:</span>
+            <input type="file" id="customAccentSoundFile" accept="audio/*" style="font-size:12px">
+          </label>
+          <div id="customAccentStatus" style="font-size:11px;color:#8b9bb4;margin:2px 0 6px 65px;display:none"></div>
+          <div style="margin-top:8px">
+            <button id="clearCustomSounds" class="btn ghost" style="font-size:12px;padding:4px 8px">Clear Custom Sounds</button>
+          </div>
+        </div>
       </div>
       <div class="setting-group" id="voicesGroup">
         <h3>Voice</h3>
@@ -1503,6 +1551,11 @@ let state = {
     brad: {},
     grandpa: {},
     slater: {}
+  },
+  // Custom metronome sound buffers
+  customSoundBuffers: {
+    normal: null,
+    accent: null
   }
 };
 
@@ -2092,6 +2145,28 @@ function initAudio(){
 function clickSound(time, accented, isSubdivision = false){
   const ctx = state.audioCtx; if(!ctx) return;
   
+  // Use custom uploaded sounds
+  if (state.metronomeSound === "custom") {
+    const customBuffer = accented ? state.customSoundBuffers.accent : state.customSoundBuffers.normal;
+    if (customBuffer) {
+      const source = ctx.createBufferSource();
+      const gainNode = ctx.createGain();
+      
+      let volume = isSubdivision ? state.subVolume : state.mainVolume;
+      if (accented && !isSubdivision) volume *= 1.2;
+      
+      gainNode.gain.setValueAtTime(volume, time);
+      source.buffer = customBuffer;
+      source.connect(gainNode).connect(ctx.destination);
+      source.start(time);
+      return;
+    } else {
+      // Fallback to default if custom sound not loaded
+      playDefaultSound(time, accented, isSubdivision);
+      return;
+    }
+  }
+  
   // Use audio files for Click and Clinician sounds
   if (state.metronomeSound === "click" || state.metronomeSound === "clinician") {
     let audioElement;
@@ -2519,15 +2594,116 @@ document.addEventListener('DOMContentLoaded', function() {
 // Add event listeners for metronome sound selection
 document.addEventListener('DOMContentLoaded', function() {
   const metronomeSounds = document.querySelectorAll('input[name="metronomeSound"]');
+  const customSoundUpload = document.getElementById('customSoundUpload');
+  const customSoundFile = document.getElementById('customSoundFile');
+  const customAccentSoundFile = document.getElementById('customAccentSoundFile');
+  const clearCustomSounds = document.getElementById('clearCustomSounds');
   
   metronomeSounds.forEach(radio => {
     radio.addEventListener('change', function() {
       if (this.checked) {
         state.metronomeSound = this.value;
         localStorage.setItem('openmet-metronome-sound', this.value);
+        
+        // Show/hide custom upload section
+        if (this.value === 'custom') {
+          customSoundUpload.style.display = 'block';
+        } else {
+          customSoundUpload.style.display = 'none';
+        }
       }
     });
   });
+  
+  // Handle custom sound file uploads
+  async function loadCustomSound(file, isAccent = false) {
+    if (!file) return;
+    
+    // Validate file size (limit to 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size too large. Please choose a file smaller than 10MB.');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('audio/')) {
+      alert('Please select a valid audio file.');
+      return;
+    }
+    
+    if (!state.audioCtx) initAudio();
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+      
+      if (isAccent) {
+        state.customSoundBuffers.accent = audioBuffer;
+        localStorage.setItem('openmet-custom-accent-sound', JSON.stringify({
+          name: file.name,
+          size: file.size,
+          type: file.type
+        }));
+      } else {
+        state.customSoundBuffers.normal = audioBuffer;
+        localStorage.setItem('openmet-custom-normal-sound', JSON.stringify({
+          name: file.name,
+          size: file.size,
+          type: file.type
+        }));
+      }
+      
+      // Store the file data in localStorage as base64
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result;
+        if (isAccent) {
+          localStorage.setItem('openmet-custom-accent-data', base64Data);
+        } else {
+          localStorage.setItem('openmet-custom-normal-data', base64Data);
+        }
+      };
+      reader.readAsDataURL(file);
+      
+      // Show success feedback
+      console.log(`Custom ${isAccent ? 'accent' : 'normal'} sound loaded successfully: ${file.name}`);
+      
+    } catch (error) {
+      console.error('Error loading custom sound:', error);
+      alert('Error loading sound file. Please try a different audio file.');
+    }
+  }
+  
+  // Custom sound file input handlers
+  if (customSoundFile) {
+    customSoundFile.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) loadCustomSound(file, false);
+    });
+  }
+  
+  if (customAccentSoundFile) {
+    customAccentSoundFile.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) loadCustomSound(file, true);
+    });
+  }
+  
+  // Clear custom sounds handler
+  if (clearCustomSounds) {
+    clearCustomSounds.addEventListener('click', function() {
+      state.customSoundBuffers.normal = null;
+      state.customSoundBuffers.accent = null;
+      customSoundFile.value = '';
+      customAccentSoundFile.value = '';
+      
+      // Clear from localStorage
+      localStorage.removeItem('openmet-custom-normal-sound');
+      localStorage.removeItem('openmet-custom-accent-sound');
+      localStorage.removeItem('openmet-custom-normal-data');
+      localStorage.removeItem('openmet-custom-accent-data');
+    });
+  }
   
   // Restore saved metronome sound selection
   const savedMetronomeSound = localStorage.getItem('openmet-metronome-sound');
@@ -2536,8 +2712,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedRadio = document.querySelector(`input[name="metronomeSound"][value="${savedMetronomeSound}"]`);
     if (savedRadio) {
       savedRadio.checked = true;
+      
+      // Show custom upload section if custom is selected
+      if (savedMetronomeSound === 'custom') {
+        customSoundUpload.style.display = 'block';
+      }
     }
   }
+  
+  // Restore custom sounds from localStorage
+  async function restoreCustomSounds() {
+    if (!state.audioCtx) initAudio();
+    
+    const normalData = localStorage.getItem('openmet-custom-normal-data');
+    const accentData = localStorage.getItem('openmet-custom-accent-data');
+    
+    if (normalData) {
+      try {
+        const response = await fetch(normalData);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+        state.customSoundBuffers.normal = audioBuffer;
+      } catch (error) {
+        console.error('Error restoring normal custom sound:', error);
+      }
+    }
+    
+    if (accentData) {
+      try {
+        const response = await fetch(accentData);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+        state.customSoundBuffers.accent = audioBuffer;
+      } catch (error) {
+        console.error('Error restoring accent custom sound:', error);
+      }
+    }
+  }
+  
+  // Restore custom sounds when page loads
+  setTimeout(restoreCustomSounds, 100);
 });
 
 // Helper to get the selected voice prefix for audio element IDs
