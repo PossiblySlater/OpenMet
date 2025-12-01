@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Slater Instrument - OpenMet</title>
+  <style>
+    /* Minimal OpenMet-like styling (kept small and consistent) */
+    body{margin:0;font-family:sans-serif;background:#0f1220;color:#e8ebff;display:grid;place-items:center;min-height:100vh}
+    .card{width:min(900px,100%);background:#161a2b;border-radius:16px;padding:18px;position:relative}
+    h1{margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
+    .panel{background:#0f1530;border:1px solid #212848;border-radius:12px;padding:12px;margin-top:12px}
+    input,select,button{padding:6px 10px;border-radius:8px;border:1px solid #2a3358;background:#0e1433;color:#fff}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+    .btn.primary{background:#7c9cff;border:none;color:#ffffff}
+    .info{color:#8b9bb4;font-size:13px}
+    label{display:flex;flex-direction:column;gap:6px}
+    code{background:#0b1220;padding:2px 6px;border-radius:6px;color:#bcd}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>
+      Slater Instrument
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="../" style="color:#7c9cff;text-decoration:none">Back</a>
+      </div>
+    </h1>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <label>
+            Sample Status
+            <div id="sampleStatus" class="info">Loading <code>slater.mp3</code>...</div>
+          </label>
+        </div>
+
+        <div style="min-width:220px">
+          <label>
+            Volume
+            <input id="masterVolume" type="range" min="0" max="100" value="80">
+          </label>
+        </div>
+
+        <div style="min-width:180px">
+          <label>
+            Root Note (sample tuned to C)
+            <select id="rootNote">
+              <option value="48">C3</option>
+              <option value="60" selected>C4</option>
+              <option value="72">C5</option>
+            </select>
+          </label>
+        </div>
+        
+        <div style="min-width:200px">
+          <label>
+            Release (s)
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="releaseTime" type="range" min="0" max="3" step="0.01" value="0">
+              <span id="releaseDisplay" class="info">0.00s</span>
+            </div>
+          </label>
+        </div>
+
+        <div style="min-width:220px">
+          <label>
+            Pitch Bend Range (semitones)
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="bendRange" type="range" min="0" max="12" step="0.5" value="2">
+              <span id="bendRangeDisplay" class="info">±2.0</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div style="flex:1">
+          <label>
+            MIDI Inputs
+            <select id="midiInputs" size="4" style="height:110px;width:100%"></select>
+          </label>
+        </div>
+
+        <div style="width:220px">
+          <label>
+            Sustain Pedal
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="display:flex;align-items:center;gap:8px">
+                <input type="checkbox" id="sustainToggle">
+                <span class="info">Hold sustain</span>
+              </label>
+            </div>
+          </label>
+          <div style="height:12px"></div>
+          <button id="requestMidiBtn" class="btn primary" style="width:100%">Request MIDI Access</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="info">Connect a MIDI keyboard/device then play notes — the sample in this folder (<code>slater.mp3</code>) is pitched so C plays at its original pitch. Playback rate is adjusted per MIDI note.</div>
+    </div>
+  </div>
+
+  <script>
+    // WebAudio + WebMIDI instrument for slater.mp3
+    const sampleUrl = 'slater.mp3';
+    let audioCtx, masterGain, sampleBuffer = null;
+    // Voice management:
+    // activeVoices: Map<voiceId, {source,gainNode,baseRate,channel,midiNote}>
+    let activeVoices = new Map();
+    // Map from "channel_note" -> Set of voiceIds for quick lookup on note-off
+    let noteToVoiceIds = new Map();
+    let nextVoiceId = 1;
+    let sustainActive = false; // global sustain toggle (also responds to CC64)
+    // sustained voices held by sustain pedal: Map<voiceId, voiceObj>
+    let sustainedVoices = new Map();
+    // Pitch bend state per channel (14-bit value 0..16383, center 8192)
+    let pitchBendState = new Array(16).fill(8192);
+    // Default bend range in semitones (configurable via UI)
+    let bendRangeSemitones = 2;
+
+    const sampleStatus = document.getElementById('sampleStatus');
+    const masterVolumeEl = document.getElementById('masterVolume');
+    const rootNoteEl = document.getElementById('rootNote');
+    const midiInputsEl = document.getElementById('midiInputs');
+    const sustainToggle = document.getElementById('sustainToggle');
+    const requestMidiBtn = document.getElementById('requestMidiBtn');
+    const releaseEl = document.getElementById('releaseTime');
+    const releaseDisplay = document.getElementById('releaseDisplay');
+    const bendRangeEl = document.getElementById('bendRange');
+    const bendRangeDisplay = document.getElementById('bendRangeDisplay');
+
+    function ensureAudioContext(){
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = masterVolumeEl.value / 100;
+        masterGain.connect(audioCtx.destination);
+      }
+    }
+
+    async function loadSample(){
+      try{
+        ensureAudioContext();
+        const r = await fetch(sampleUrl);
+        const ab = await r.arrayBuffer();
+        sampleBuffer = await audioCtx.decodeAudioData(ab);
+        sampleStatus.textContent = 'Loaded: ' + sampleUrl + ' — Buffer ready';
+      }catch(e){
+        sampleStatus.textContent = 'Error loading sample: ' + e.message;
+      }
+    }
+
+    function midiToPlaybackRate(midiNote, rootMidi){
+      return Math.pow(2, (midiNote - rootMidi) / 12);
+    }
+
+    function playNote(midiNote, velocity=100, channel=0){
+      if (!sampleBuffer) return;
+      ensureAudioContext();
+      const rootMidi = parseInt(rootNoteEl.value,10) || 60;
+      const baseRate = midiToPlaybackRate(midiNote, rootMidi);
+      // Apply current pitch bend for this channel
+      const bendVal = pitchBendState[channel] || 8192;
+      const bendSemis = ((bendVal - 8192) / 8192) * bendRangeSemitones;
+      const bendFactor = Math.pow(2, bendSemis / 12);
+      const finalRate = baseRate * bendFactor;
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = sampleBuffer;
+      // Loop the sample so it repeats until the note is released/stopped
+      src.loop = true;
+      src.loopStart = 0;
+      src.loopEnd = sampleBuffer ? sampleBuffer.duration : undefined;
+      src.playbackRate.value = finalRate;
+      const g = audioCtx.createGain();
+      const velGain = Math.max(0.02, velocity/127);
+      g.gain.setValueAtTime(velGain, audioCtx.currentTime);
+      src.connect(g);
+      g.connect(masterGain);
+      src.start();
+
+      // Store voice with metadata
+      const id = nextVoiceId++;
+      const voice = {source: src, gainNode: g, baseRate: baseRate, channel: channel, midiNote: midiNote};
+      activeVoices.set(id, voice);
+      const key = `${channel}_${midiNote}`;
+      if (!noteToVoiceIds.has(key)) noteToVoiceIds.set(key, new Set());
+      noteToVoiceIds.get(key).add(id);
+    }
+
+    function stopVoiceWithRelease(obj){
+      // Use configured release time: 0 = immediate stop, >0 = linear fade
+      ensureAudioContext();
+      const release = releaseEl ? parseFloat(releaseEl.value) || 0 : 0;
+      const now = audioCtx.currentTime;
+      if (release <= 0){
+        try{ obj.source.stop(); }catch(e){}
+        try{ obj.gainNode.disconnect(); }catch(e){}
+        try{ obj.source.disconnect(); }catch(e){}
+        return;
+      }
+      try{
+        obj.gainNode.gain.cancelScheduledValues(now);
+        obj.gainNode.gain.setValueAtTime(obj.gainNode.gain.value || 0.0001, now);
+        obj.gainNode.gain.linearRampToValueAtTime(0.0001, now + release);
+        // Stop slightly after ramp ends
+        obj.source.stop(now + release + 0.02);
+      }catch(e){
+        try{ obj.source.stop(); }catch(_){}
+      }
+    }
+
+    function releaseNote(midiNote, channel=0){
+      const key = `${channel}_${midiNote}`;
+      const ids = noteToVoiceIds.get(key);
+      if (!ids) return;
+      for (const id of Array.from(ids)){
+        const v = activeVoices.get(id);
+        if (!v) continue;
+        if (sustainActive){
+          sustainedVoices.set(id, v);
+        } else {
+          stopVoiceWithRelease(v);
+        }
+        activeVoices.delete(id);
+        ids.delete(id);
+      }
+      if (ids.size === 0) noteToVoiceIds.delete(key);
+    }
+
+    function releaseAllSustained(){
+      for (const [id,v] of sustainedVoices.entries()){
+        stopVoiceWithRelease(v);
+        // cleanup noteToVoiceIds mapping if present
+        const key = `${v.channel}_${v.midiNote}`;
+        const ids = noteToVoiceIds.get(key);
+        if (ids) ids.delete(id);
+        activeVoices.delete(id);
+      }
+      sustainedVoices.clear();
+    }
+
+    masterVolumeEl.addEventListener('input', ()=>{
+      ensureAudioContext();
+      const v = masterVolumeEl.value/100;
+      masterGain.gain.setTargetAtTime(v, audioCtx.currentTime, 0.01);
+    });
+
+    sustainToggle.addEventListener('change',(e)=>{
+      sustainActive = e.target.checked;
+      if (!sustainActive){
+        releaseAllSustained();
+      }
+    });
+
+    // MIDI Handling
+    let midiAccess = null;
+    async function listMidiInputs(){
+      midiInputsEl.innerHTML = '';
+      if (!midiAccess) return;
+      for (let input of midiAccess.inputs.values()){
+        const opt = document.createElement('option');
+        opt.value = input.id;
+        opt.textContent = (input.name || input.manufacturer || input.id) + (input.state?(' — '+input.state):'');
+        midiInputsEl.appendChild(opt);
+      }
+    }
+
+    function applyPitchBendToChannel(channel){
+      const bendVal = pitchBendState[channel] || 8192;
+      const bendSemis = ((bendVal - 8192) / 8192) * bendRangeSemitones;
+      const bendFactor = Math.pow(2, bendSemis / 12);
+      for (const [id, v] of activeVoices.entries()){
+        if (v.channel === channel){
+          try{
+            v.source.playbackRate.value = (v.baseRate || 1) * bendFactor;
+          }catch(e){/* ignore */}
+        }
+      }
+      for (const [id, v] of sustainedVoices.entries()){
+        if (v.channel === channel){
+          try{
+            v.source.playbackRate.value = (v.baseRate || 1) * bendFactor;
+          }catch(e){/* ignore */}
+        }
+      }
+    }
+
+    function onMIDIMessage(e){
+      const [status, d1, d2] = e.data;
+      const cmd = status & 0xf0;
+      const channel = status & 0x0f;
+      if (cmd === 0x90 && d2>0){ // note on
+        playNote(d1, d2, channel);
+      } else if (cmd === 0x80 || (cmd === 0x90 && d2===0)){ // note off
+        releaseNote(d1, channel);
+      } else if (cmd === 0xB0){ // CC
+        if (d1 === 64){
+          sustainActive = d2 >= 64;
+          sustainToggle.checked = sustainActive;
+          if (!sustainActive) releaseAllSustained();
+        }
+      } else if (cmd === 0xE0){ // pitch bend
+        // d1 = lsb, d2 = msb
+        const value = (d2 << 7) + d1; // 0..16383, center 8192
+        pitchBendState[channel] = value;
+        applyPitchBendToChannel(channel);
+      }
+    }
+
+    async function initMIDI(){
+      if (!navigator.requestMIDIAccess){
+        sampleStatus.textContent = 'WebMIDI not supported in this browser.';
+        return;
+      }
+      try{
+        midiAccess = await navigator.requestMIDIAccess();
+        sampleStatus.textContent = 'MIDI ready. ' + sampleStatus.textContent;
+        for (let input of midiAccess.inputs.values()){
+          input.onmidimessage = onMIDIMessage;
+        }
+        midiAccess.onstatechange = (ev) => {
+          listMidiInputs();
+          if (ev.port && ev.port.type === 'input' && ev.port.state === 'connected'){
+            ev.port.onmidimessage = onMIDIMessage;
+          }
+        };
+        listMidiInputs();
+      }catch(e){
+        sampleStatus.textContent = 'MIDI init error: ' + e.message;
+      }
+    }
+
+    requestMidiBtn.addEventListener('click', async ()=>{
+      await initMIDI();
+    });
+
+    // Update release display
+    if (releaseEl){
+      releaseEl.addEventListener('input', ()=>{
+        releaseDisplay.textContent = parseFloat(releaseEl.value).toFixed(2) + 's';
+      });
+    }
+
+    // Pitch bend range UI
+    if (bendRangeEl){
+      bendRangeEl.addEventListener('input', ()=>{
+        bendRangeSemitones = parseFloat(bendRangeEl.value) || 2;
+        bendRangeDisplay.textContent = '±' + bendRangeSemitones.toFixed(1);
+        // reapply bend to all channels with current values
+        for (let ch = 0; ch < 16; ch++) applyPitchBendToChannel(ch);
+      });
+      // initialize display
+      bendRangeDisplay.textContent = '±' + (parseFloat(bendRangeEl.value)||2).toFixed(1);
+    }
+
+    midiInputsEl.addEventListener('change', ()=>{
+      const id = midiInputsEl.value;
+      if (!midiAccess) return;
+      for (let input of midiAccess.inputs.values()) input.onmidimessage = null;
+      const chosen = midiAccess.inputs.get(id);
+      if (chosen) chosen.onmidimessage = onMIDIMessage;
+    });
+
+    // Some browsers block autoplay; load sample after user gesture
+    window.addEventListener('pointerdown', ()=>{ if (!audioCtx) loadSample(); }, {once:true});
+
+    // initial load attempt
+    loadSample();
+  </script>
+</body>
+</html>

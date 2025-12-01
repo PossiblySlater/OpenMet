@@ -3106,5 +3106,39 @@ function highlightBeat(i){
   });
 }
 </script>
+<script>
+// Open the Slater subpage when the word "slater" is typed three times consecutively.
+(function(){
+  let slaterBuffer = '';
+  let slaterCount = 0;
+  const maxBuf = 200;
+  const resetTimeoutMs = 5000; // reset typed count after inactivity
+  let resetTimer = null;
+
+  function scheduleReset(){
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(()=>{ slaterCount = 0; slaterBuffer = ''; resetTimer = null; }, resetTimeoutMs);
+  }
+
+  window.addEventListener('keydown', function(e){
+    // Only consider single-character keys (letters, numbers, punctuation)
+    if (typeof e.key === 'string' && e.key.length === 1){
+      slaterBuffer += e.key.toLowerCase();
+      if (slaterBuffer.length > maxBuf) slaterBuffer = slaterBuffer.slice(-maxBuf);
+      if (slaterBuffer.endsWith('slater')){
+        slaterCount++;
+        slaterBuffer = '';
+        scheduleReset();
+        if (slaterCount >= 3){
+          // navigate to slater subpage
+          try{ window.location.href = 'slater/'; }catch(e){}
+        }
+      }
+    } else if (e.key === 'Backspace'){
+      slaterBuffer = slaterBuffer.slice(0, -1);
+    }
+  });
+})();
+</script>
 </body>
 </html>
