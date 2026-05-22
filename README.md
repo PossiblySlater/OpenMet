@@ -1,6 +1,6 @@
 # OpenMet Metronome
 
-OpenMet is a modern, web-based metronome designed for musicians, educators, and anyone who needs precise rhythm practice. It features a clean, customizable interface, advanced set programming, accessibility options, and playful surprises.
+OpenMet is a modern, web-based metronome designed for musicians, educators, and anyone who needs precise rhythm practice. It features a clean, customizable interface, advanced set programming, and accessibility options. I created OpenMet because I was sick of all of the good metronome sites being blocked on our school computers and I wanted a good, reliable metronome with lots of features to use when at school (unfortunately OpenMet has been blocked on our school computers now, so I guess there was no point).
 
 **Live Website:** [https://open-met.org](https://open-met.org)
 
